@@ -1,0 +1,1 @@
+Added option to edit each todo, delete from edit page and sort and filter method.

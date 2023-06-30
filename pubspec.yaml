@@ -1,0 +1,42 @@
+name: minttask
+description: A simple todo manager for Android made using Flutter with Material Design 3.
+
+publish_to: 'none'
+
+version: 1.0.0+100
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  animations: ^2.0.7
+  cupertino_icons: ^1.0.2
+  dynamic_color: ^1.6.5
+  flutter:
+    sdk: flutter
+  flutter_colorpicker: ^1.0.3
+  flutter_svg: ^2.0.6
+  package_info_plus: ^4.0.2
+  path: ^1.8.3
+  provider: ^6.0.5
+  shared_preferences: ^2.1.1
+  sqflite: ^2.2.8+4
+  url_launcher: ^6.1.11
+
+dev_dependencies:
+  flutter_lints: ^2.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+
+  uses-material-design: true
+  assets:
+    - assets/github-mark-white.svg
+    - assets/github-mark.svg
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: fonts/Manrope/Manrope-Regular.ttf
+  #      - asset: fonts/Schyler-Italic.ttf
+  #        style: italic

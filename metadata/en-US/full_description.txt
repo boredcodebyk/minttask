@@ -1,0 +1,7 @@
+A simple todo manager for Android made using Flutter with Material Design 3.
+
+Features
+ - Add todo
+  - Edit and manage todo
+  - Separate description page
+  - Custom theme and dynamic theme
