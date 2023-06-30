@@ -75,7 +75,7 @@ class ThemePage extends StatefulWidget {
 
 class _ThemePageState extends State<ThemePage> {
   static const platform =
-      MethodChannel('bored.codebyk.minttask/androidversion');
+      MethodChannel('bored.codebyk.mint_task/androidversion');
 
   int av = 0;
   Future<int> androidVersion() async {
