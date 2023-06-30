@@ -58,10 +58,6 @@ jobs:
         working-directory: ${{ env.APK_BUILD_DIR }}
         run: flutter pub get
 
-      - name: Build generated files
-        working-directory: ${{ env.APK_BUILD_DIR }}
-        run: flutter pub run build_runner build -d
-
       - name: Build APK
         working-directory: ${{ env.APK_BUILD_DIR }}
         run: flutter build apk --release
