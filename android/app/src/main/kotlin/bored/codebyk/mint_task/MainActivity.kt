@@ -1,5 +1,6 @@
 package bored.codebyk.mint_task
 
+import android.content.Intent
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -28,4 +29,5 @@ class MainActivity: FlutterActivity() {
     fun getAndroidVersion(): Int {
         return Build.VERSION.SDK_INT
     }
+
 }

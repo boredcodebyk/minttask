@@ -1,38 +1,28 @@
-import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_whatsnew/flutter_whatsnew.dart';
 import 'package:provider/provider.dart';
+import 'package:restart_app/restart_app.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import '../models/settings_model.dart';
+import '../model/settings_model.dart';
+import '../utils/utils.dart';
+import 'pages.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
-  Route _createRoute(Widget widget) {
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => widget,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return SharedAxisTransition(
-          animation: animation,
-          secondaryAnimation: secondaryAnimation,
-          transitionType: SharedAxisTransitionType.horizontal,
-          child: child,
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    SettingsModel settings = Provider.of<SettingsModel>(context);
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
-            title: const Text("Settings"),
+          const SliverAppBar.large(
+            title: Text("Settings"),
           ),
           SliverToBoxAdapter(
             child: ListView(
@@ -40,22 +30,33 @@ class SettingsPage extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 ListTile(
-                  leading: const Icon(Icons.color_lens_outlined),
-                  title: const Text("Theme"),
-                  onTap: () =>
-                      Navigator.push(context, _createRoute(const ThemePage())),
+                  leading: const Icon(Icons.settings_applications_rounded),
+                  title: const Text("General"),
+                  subtitle: const Text("Gesture, Backup and restore"),
+                  onTap: () => Navigator.push(context,
+                      createRouteSharedAxisTransition(const GeneralSettings())),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.playlist_remove),
-                  title: const Text("Todo remove method"),
-                  onTap: () => Navigator.push(
-                      context, _createRoute(const DismissTodo())),
+                  leading: const Icon(Icons.design_services_outlined),
+                  title: const Text("Display"),
+                  subtitle: const Text("Dynamic color, Dark theme"),
+                  onTap: () => Navigator.push(context,
+                      createRouteSharedAxisTransition(const ThemePage())),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.app_settings_alt_outlined),
+                  title: const Text("Run setup"),
+                  onTap: () {
+                    settings.firstLaunch = true;
+                    Restart.restartApp();
+                  },
                 ),
                 ListTile(
                   leading: const Icon(Icons.info_outline),
                   title: const Text("About"),
-                  onTap: () =>
-                      Navigator.push(context, _createRoute(const Abouts())),
+                  subtitle: const Text("Version, Changelog, Licenses"),
+                  onTap: () => Navigator.push(context,
+                      createRouteSharedAxisTransition(const AboutPage())),
                 )
               ],
             ),
@@ -66,306 +67,52 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-class ThemePage extends StatefulWidget {
-  const ThemePage({super.key});
-
-  @override
-  State<ThemePage> createState() => _ThemePageState();
-}
-
-class _ThemePageState extends State<ThemePage> {
-  static const platform =
-      MethodChannel('bored.codebyk.mint_task/androidversion');
-
-  int av = 0;
-  Future<int> androidVersion() async {
-    final result = await platform.invokeMethod('getAndroidVersion');
-    return await result;
-  }
-
-  void fetchVersion() async {
-    final v = await androidVersion();
-    setState(() {
-      av = v;
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    fetchVersion();
-  }
+class GeneralSettings extends StatelessWidget {
+  const GeneralSettings({super.key});
 
   @override
   Widget build(BuildContext context) {
-    SettingsModel settings = Provider.of<SettingsModel>(context);
     return Scaffold(
       body: CustomScrollView(
-        slivers: [
-          SliverAppBar.large(
-            title: const Text("Theme"),
+        slivers: <Widget>[
+          const SliverAppBar.large(
+            title: Text("General"),
           ),
           SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisAlignment: MainAxisAlignment.start,
+            child: ListView(
+              shrinkWrap: true,
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SegmentedButton(
-                    segments: const [
-                      ButtonSegment(
-                          value: ThemeMode.system, label: Text("System")),
-                      ButtonSegment(
-                          value: ThemeMode.light, label: Text("Light")),
-                      ButtonSegment(value: ThemeMode.dark, label: Text("Dark")),
-                    ],
-                    selected: {settings.themeMode},
-                    onSelectionChanged: (p0) {
-                      settings.themeMode = p0.first;
-                    },
-                  ),
+                ListTile(
+                  leading: const Icon(Icons.swipe_rounded),
+                  title: const Text("Swipe actions"),
+                  onTap: () => Navigator.push(context,
+                      createRouteSharedAxisTransition(const SwipeActionPage())),
                 ),
-                ListView(
-                  shrinkWrap: true,
-                  children: [
-                    SwitchListTile(
-                      value: settings.isSystemColor,
-                      onChanged: av >= 31
-                          ? (value) => settings.isSystemColor = value
-                          : null,
-                      title: const Text("Use system color scheme"),
-                      subtitle: Text(settings.isSystemColor
-                          ? "Using system dynamic color"
-                          : "Using default color scheme"),
-                    ),
-                    SwitchListTile(
-                      value: settings.useCustomColor,
-                      onChanged: settings.isSystemColor
-                          ? null
-                          : (value) => settings.useCustomColor = value,
-                      title: const Text("Use custom color"),
-                    ),
-                    if (settings.useCustomColor == true)
-                      SizedBox(
-                        height: 100,
-                        width: 100,
-                        child: InkWell(
-                          onTap: () => showDialog(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                content: ColorPicker(
-                                  pickerColor: Color(settings.customColor),
-                                  onColorChanged: (value) {
-                                    settings.customColor = value.value;
-                                  },
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      settings.useCustomColor = false;
-                                      Navigator.pop(context);
-                                    },
-                                    child: const Text("Cancel"),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                    child: const Text("Ok"),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                          child: Card(
-                            color: Theme.of(context).colorScheme.surfaceVariant,
-                            elevation: 0,
-                            child: Center(
-                              child: ClipOval(
-                                child: SizedBox(
-                                  width: 48,
-                                  height: 48,
-                                  child: Stack(
-                                    clipBehavior: Clip.hardEdge,
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Positioned(
-                                        left: 0,
-                                        top: 0,
-                                        right: 24,
-                                        bottom: 24,
-                                        child: Container(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                        ),
-                                      ),
-                                      Positioned(
-                                        left: 24,
-                                        top: 0,
-                                        right: 0,
-                                        bottom: 24,
-                                        child: Container(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .secondary,
-                                        ),
-                                      ),
-                                      Positioned(
-                                        left: 24,
-                                        top: 24,
-                                        right: 0,
-                                        bottom: 0,
-                                        child: Container(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .tertiary,
-                                        ),
-                                      ),
-                                      Positioned(
-                                        left: 0,
-                                        top: 24,
-                                        right: 24,
-                                        bottom: 0,
-                                        child: Container(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .surface,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                  ],
+                ListTile(
+                  leading: const Icon(Icons.backup_outlined),
+                  title: const Text("Backup"),
+                  onTap: () => Navigator.push(context,
+                      createRouteSharedAxisTransition(const BackupPage())),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.restore),
+                  title: const Text("Restore"),
+                  onTap: () => Navigator.push(context,
+                      createRouteSharedAxisTransition(const RestorePage())),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.warning),
+                  title: const Text("Reset"),
+                  subtitle: const Text(
+                      "Warning, this will erase the entire database. "),
+                  onTap: () => Navigator.push(context,
+                      createRouteSharedAxisTransition(const ResetPage())),
                 )
               ],
             ),
           )
         ],
       ),
-    );
-  }
-}
-
-class DismissTodo extends StatelessWidget {
-  const DismissTodo({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    SettingsModel settings = Provider.of<SettingsModel>(context);
-
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar.large(
-            title: const Text("Todo remove method"),
-          ),
-          SliverToBoxAdapter(
-            child: Column(children: [
-              ListView(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  RadioListTile.adaptive(
-                    value: "button",
-                    title: const Text("Button"),
-                    groupValue: settings.removeMethod,
-                    onChanged: (value) => settings.removeMethod = value!,
-                  ),
-                  RadioListTile.adaptive(
-                    value: "gesture",
-                    title: const Text("Gesture"),
-                    groupValue: settings.removeMethod,
-                    onChanged: (value) => settings.removeMethod = value!,
-                  ),
-                ],
-              )
-            ]),
-          )
-        ],
-      ),
-    );
-  }
-}
-
-class Abouts extends StatefulWidget {
-  const Abouts({super.key});
-
-  @override
-  State<Abouts> createState() => _AboutsState();
-}
-
-class _AboutsState extends State<Abouts> {
-  String _appVersion = "";
-
-  void getVersion() async {
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    String appVersion = packageInfo.version;
-    setState(() {
-      _appVersion = appVersion;
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => getVersion());
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(slivers: [
-        SliverAppBar.large(
-          title: const Text("About"),
-        ),
-        SliverToBoxAdapter(
-          child: ListView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: const Text("App Version"),
-                subtitle: Text(_appVersion),
-              ),
-              ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: const Text("Licenses"),
-                onTap: () => showLicensePage(
-                    context: context,
-                    applicationName: "Mint Task",
-                    applicationVersion: _appVersion),
-              ),
-              ListTile(
-                leading: SvgPicture.asset(
-                  Theme.of(context).brightness == Brightness.light
-                      ? "assets/github-mark.svg"
-                      : "assets/github-mark-white.svg",
-                  semanticsLabel: 'Github',
-                  height: 24,
-                  width: 24,
-                ),
-                title: const Text("Github"),
-                onTap: () async {
-                  const url = 'https://github.com/boredcodebyk';
-                  if (!await launchUrl(Uri.parse(url),
-                      mode: LaunchMode.externalApplication)) {
-                    throw Exception('Could not launch $url');
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-      ]),
     );
   }
 }
