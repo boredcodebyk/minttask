@@ -2,6 +2,8 @@
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/boredcodebyk/minttask?color=%23fffcf3&logoColor=%231c1c17&style=for-the-badge)
 
+## !! This is development branch, everything here is likely to be unstable !!
+
 A simple todo manager for Android made using Flutter with Material Design 3.
 
 ## Features
