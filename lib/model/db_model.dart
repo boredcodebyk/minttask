@@ -314,16 +314,19 @@ class TaskListProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  //TODO: fixing of code to update description
   void updateTodoDescription(int id, String desc) async {
-    print(desc);
+    print(desc); // Passes the updated string
     final updateTask = await isar!.taskDatas.get(id);
-    print(updateTask?.description);
+    print(updateTask
+        ?.description); // Print's existing data in description field before updating
     updateTask!.description = desc;
-    updateTask.dateModified = DateTime.now();
+    updateTask.dateModified = DateTime.now(); // This updates in database
     await isar?.writeTxn(() async {
       isar!.taskDatas.put(updateTask);
     });
-    print(updateTask.description);
+    print(updateTask
+        .description); // Print's updated data yet in Isar's database inspector, it doesn't update when everything else does.
     await updateListinProvider();
     notifyListeners();
   }
