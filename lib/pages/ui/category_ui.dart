@@ -276,11 +276,8 @@ class _CategoryListUIState extends State<CategoryListUI> {
                                         .addLabelSelection[key] ??
                                     false,
                                 onChanged: (value) {
-                                  categoryDataProvider.saveCategoryState(
-                                    key,
-                                    value ?? false,
-                                    CategorySelectMode.add,
-                                  );
+                                  categoryDataProvider.saveCategoryState(key,
+                                      value ?? false, CategorySelectMode.add);
                                 }),
                           );
                         },

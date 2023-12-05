@@ -67,8 +67,8 @@ class TaskListProvider with ChangeNotifier {
 
   Map<int, bool> get addLabelSelection => _addLabelSelection;
   set addLabelSelectionModify(Map<int, bool> value) {
-    if (_editLabelSelection == value) return;
-    _editLabelSelection = value;
+    if (_addLabelSelection == value) return;
+    _addLabelSelection = value;
     notifyListeners();
   }
 
@@ -143,6 +143,12 @@ class TaskListProvider with ChangeNotifier {
           item.id: false
       });
     }
+    if (_addLabelSelection.isEmpty) {
+      saveLabelSelectionForAdd({
+        for (var item in await isar!.categoryLists.where().findAll())
+          item.id: false
+      });
+    }
     notifyListeners();
   }
 
@@ -169,6 +175,11 @@ class TaskListProvider with ChangeNotifier {
 
   saveLabelSelectionForEdit(Map<int, bool> selection) {
     editLabelSelectionModify = selection;
+    notifyListeners();
+  }
+
+  saveLabelSelectionForAdd(Map<int, bool> selection) {
+    addLabelSelectionModify = selection;
     notifyListeners();
   }
 
@@ -320,13 +331,13 @@ class TaskListProvider with ChangeNotifier {
     final updateTask = await isar!.taskDatas.get(id);
     print(updateTask
         ?.description); // Print's existing data in description field before updating
-    updateTask!.description = desc;
-    updateTask.dateModified = DateTime.now(); // This updates in database
+    updateTask?.description = desc;
+    updateTask?.dateModified = DateTime.now(); // This updates in database
     await isar?.writeTxn(() async {
-      isar!.taskDatas.put(updateTask);
+      isar!.taskDatas.put(updateTask!);
     });
-    print(updateTask
-        .description); // Print's updated data yet in Isar's database inspector, it doesn't update when everything else does.
+    print(updateTask!
+        .description); // Print's updated data, yet in Isar's database inspector it doesn't update when everything else does.
     await updateListinProvider();
     notifyListeners();
   }
@@ -367,7 +378,9 @@ class TaskListProvider with ChangeNotifier {
     await AwesomeNotifications().cancel(updateTask!.notifyID!);
     if (hasReminder) {
       await AwesomeNotifications().createNotification(
-        schedule: NotificationCalendar.fromDate(date: reminderValue!),
+        schedule: NotificationCalendar.fromDate(
+            date: DateTime.fromMicrosecondsSinceEpoch(
+                reminderValue!.microsecondsSinceEpoch)),
         content: NotificationContent(
           id: updateTask.notifyID!,
           channelKey: 'task_reminder',
@@ -570,6 +583,12 @@ class TaskListProvider with ChangeNotifier {
     }
     if (_editLabelSelection.isEmpty) {
       saveLabelSelectionForEdit({
+        for (var item in await isar!.categoryLists.where().findAll())
+          item.id: false
+      });
+    }
+    if (_addLabelSelection.isEmpty) {
+      saveLabelSelectionForAdd({
         for (var item in await isar!.categoryLists.where().findAll())
           item.id: false
       });

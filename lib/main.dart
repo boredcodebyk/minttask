@@ -19,18 +19,8 @@ import 'utils/utils.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  AwesomeNotifications().initialize(
-      null,
-      [
-        NotificationChannel(
-          channelGroupKey: "reminders",
-          channelKey: "task_reminder",
-          channelName: "Mint Task",
-          channelDescription: "Reminder",
-          defaultColor: Colors.orange,
-        ),
-      ],
-      debug: true);
+
+  await NotificationController.initializeLocalNotification();
   AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
     if (!isAllowed) {
       AwesomeNotifications().requestPermissionToSendNotifications();
@@ -65,17 +55,13 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  late ReceivedAction? receivedAction;
+
   @override
   void initState() {
     super.initState();
-    AwesomeNotifications().setListeners(
-        onActionReceivedMethod: NotificationController.onActionReceivedMethod,
-        onNotificationCreatedMethod:
-            NotificationController.onNotificationCreatedMethod,
-        onNotificationDisplayedMethod:
-            NotificationController.onNotificationDisplayedMethod,
-        onDismissActionReceivedMethod:
-            NotificationController.onDismissActionReceivedMethod);
+    NotificationController.startListeningNotificationEvents();
+    receivedAction = NotificationController.initialAction;
 
     const QuickActions quickActions = QuickActions();
     quickActions.initialize((String shortcutType) {
@@ -89,7 +75,7 @@ class _MyAppState extends State<MyApp> {
       quickActions.setShortcutItems(<ShortcutItem>[
         const ShortcutItem(
             type: 'add',
-            localizedTitle: 'Add task~',
+            localizedTitle: 'Add task',
             icon: '@drawable/baseline_add_24'),
       ]);
     });
@@ -145,7 +131,13 @@ class _MyAppState extends State<MyApp> {
             useMaterial3: true,
           ),
           themeMode: settings.themeMode,
-          home: settings.firstLaunch ? const SetupPage() : const HomePage(),
+          home: settings.firstLaunch
+              ? const SetupPage()
+              : receivedAction?.payload != null
+                  ? NotifyAction(
+                      receivedAction: receivedAction,
+                    )
+                  : const HomePage(),
         );
       },
     );

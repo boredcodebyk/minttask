@@ -11,3 +11,4 @@ export 'settingspages/swipeaction_page.dart' show SwipeActionPage;
 export 'settingspages/theme_page.dart';
 export 'settingspages/about_page.dart';
 export 'settingspages/reset_page.dart';
+export 'ui/notification_action.dart';

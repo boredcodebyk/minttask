@@ -1,3 +1,4 @@
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:minttask/pages/archive.dart';
@@ -10,8 +11,8 @@ import 'ui/addtask_ui.dart';
 import 'pages.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
-
+  const HomePage({super.key, this.receivedAction});
+  final ReceivedAction? receivedAction;
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -22,6 +23,7 @@ class _HomePageState extends State<HomePage> {
       GlobalKey<State<AllListView>>();
   int screenIndex = 0;
   late bool showNavigationDrawer;
+  String notificationbuttonkeypressed = "";
 
   void handleScreenChanged(int selectedScreen) {
     setState(() {
@@ -48,7 +50,11 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-
+    if (widget.receivedAction != null) {
+      setState(() {
+        notificationbuttonkeypressed = widget.receivedAction!.buttonKeyPressed;
+      });
+    }
     //deleteafter30d();
   }
 
@@ -60,6 +66,10 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     TodoListModel tdl = Provider.of<TodoListModel>(context);
+    if (notificationbuttonkeypressed.split("_").first == "done") {
+      Provider.of<TaskListProvider>(context, listen: false).markTaskDone(
+          int.parse(notificationbuttonkeypressed.split("_").last), true);
+    }
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: Color(
@@ -139,8 +149,11 @@ class _HomePageState extends State<HomePage> {
                         : 10)),
             actions: [
               IconButton(
-                  onPressed: () => Navigator.push(context,
-                      createRouteSharedAxisTransition(const MigrationWidget())),
+                  onPressed: () => Navigator.push(
+                      context,
+                      createRouteSharedAxisTransition(NotifyAction(
+                        receivedAction: widget.receivedAction,
+                      ))),
                   icon: const Icon(Icons.deblur_outlined)),
               IconButton(
                   onPressed: () => showSearch(
