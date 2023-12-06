@@ -14,7 +14,6 @@ import 'pages/setup.dart';
 import 'model/notification_model.dart';
 import 'model/settings_model.dart';
 import 'model/db_model.dart';
-import 'pages/ui/addtask_ui.dart';
 import 'utils/utils.dart';
 
 Future<void> main() async {
@@ -38,9 +37,6 @@ Future<void> main() async {
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider.value(value: settingsmodel),
     ChangeNotifierProvider.value(value: tdl),
-    ChangeNotifierProvider(
-      create: (context) => TaskListProvider(),
-    ),
   ], child: const MyApp()));
 }
 

@@ -2,12 +2,10 @@ import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:minttask/pages/archive.dart';
-import 'package:minttask/pages/settingspages/migration.dart';
 import 'package:provider/provider.dart';
 import '../model/db_model.dart';
 import '../model/settings_model.dart';
 import '../utils/utils.dart';
-import 'ui/addtask_ui.dart';
 import 'pages.dart';
 
 class HomePage extends StatefulWidget {
@@ -19,8 +17,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-  final GlobalKey<State<AllListView>> allListViewKey =
-      GlobalKey<State<AllListView>>();
+
   int screenIndex = 0;
   late bool showNavigationDrawer;
   String notificationbuttonkeypressed = "";
@@ -134,12 +131,9 @@ class _HomePageState extends State<HomePage> {
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar.large(
-            leading: Hero(
-              tag: "drawerIconToBackIcon",
-              child: IconButton(
-                  onPressed: () => scaffoldKey.currentState!.openDrawer(),
-                  icon: const Icon(Icons.menu_open_rounded)),
-            ),
+            leading: IconButton(
+                onPressed: () => scaffoldKey.currentState!.openDrawer(),
+                icon: const Icon(Icons.menu_open_rounded)),
             title: Text(destinations[screenIndex].label),
             backgroundColor: Color(
                 CorePalette.of(Theme.of(context).colorScheme.primary.value)
@@ -178,7 +172,7 @@ class _HomePageState extends State<HomePage> {
                                 physics: const NeverScrollableScrollPhysics(),
                                 children: [
                                   RadioListTile(
-                                    value: "id",
+                                    value: SortList.id,
                                     groupValue: tdl.sort,
                                     onChanged: (value) {
                                       tdl.sort = value!;
@@ -186,7 +180,7 @@ class _HomePageState extends State<HomePage> {
                                     title: const Text("Default"),
                                   ),
                                   RadioListTile(
-                                    value: "title",
+                                    value: SortList.title,
                                     groupValue: tdl.sort,
                                     onChanged: (value) {
                                       tdl.sort = value!;
@@ -194,7 +188,7 @@ class _HomePageState extends State<HomePage> {
                                     title: const Text("Title"),
                                   ),
                                   RadioListTile(
-                                    value: "date_created",
+                                    value: SortList.dateCreated,
                                     groupValue: tdl.sort,
                                     onChanged: (value) {
                                       tdl.sort = value!;
@@ -202,7 +196,7 @@ class _HomePageState extends State<HomePage> {
                                     title: const Text("Date Created"),
                                   ),
                                   RadioListTile(
-                                    value: "date_modified",
+                                    value: SortList.dateModified,
                                     groupValue: tdl.sort,
                                     onChanged: (value) {
                                       tdl.sort = value!;
@@ -211,7 +205,7 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   const Divider(),
                                   RadioListTile(
-                                    value: "asc",
+                                    value: FilterList.asc,
                                     groupValue: tdl.filter,
                                     onChanged: (value) {
                                       tdl.filter = value!;
@@ -219,7 +213,7 @@ class _HomePageState extends State<HomePage> {
                                     title: const Text("Ascending"),
                                   ),
                                   RadioListTile(
-                                    value: "desc",
+                                    value: FilterList.desc,
                                     groupValue: tdl.filter,
                                     onChanged: (value) {
                                       tdl.filter = value!;
@@ -267,7 +261,7 @@ class _HomePageState extends State<HomePage> {
             child: Padding(
               padding: const EdgeInsets.only(bottom: 84),
               child: [
-                const AllListView(),
+                const MainListView(),
                 const ArchivePage(),
                 const TrashCan()
               ].elementAt(screenIndex),
@@ -278,7 +272,7 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: screenIndex == 0
           ? FloatingActionButton(
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              heroTag: "addUI",
+              heroTag: "drawerIconToBackIcon",
               onPressed: () {
                 Navigator.push(
                   context,

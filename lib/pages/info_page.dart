@@ -28,10 +28,8 @@ class _InfoPageState extends State<InfoPage> {
   DateTime _creationDate = DateTime.now();
   DateTime _modifiedDate = DateTime.now();
   void _getdata() async {
-    final updateTask = await context
-        .read<TaskListProvider>()
-        .isarCollectionTaskData!
-        .get(widget.todoID);
+    final isarInstance = IsarHelper.instance;
+    final updateTask = await isarInstance.getEachTaskData(id: widget.todoID);
     setState(() {
       _isDone = updateTask!.doneStatus!;
       _title = updateTask.title!;

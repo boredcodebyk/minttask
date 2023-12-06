@@ -3,22 +3,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/utils.dart';
 
 class TodoListModel extends ChangeNotifier {
-  String _filter = "desc";
-  String _sort = "id";
+  FilterList _filter = FilterList.desc;
+  SortList _sort = SortList.id;
   bool _showCompleted = true;
   bool _useCategorySort = false;
   bool _detailedView = true;
 
-  String get filter => _filter;
-  set filter(String value) {
+  FilterList get filter => _filter;
+  set filter(FilterList value) {
     if (_filter == value) return;
     _filter = value;
     notifyListeners();
     save();
   }
 
-  String get sort => _sort;
-  set sort(String value) {
+  SortList get sort => _sort;
+  set sort(SortList value) {
     if (_sort == value) return;
     _sort = value;
     notifyListeners();
@@ -51,8 +51,8 @@ class TodoListModel extends ChangeNotifier {
 
   Future<void> save() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString('filter', _filter);
-    prefs.setString('sort', _sort);
+    prefs.setString('filter', _filter.toString());
+    prefs.setString('sort', _sort.toString());
     prefs.setBool('showCompleted', _showCompleted);
     prefs.setBool('useCategorySort', _useCategorySort);
     prefs.setBool('detailedView', _detailedView);
@@ -60,8 +60,12 @@ class TodoListModel extends ChangeNotifier {
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    _filter = prefs.getString('filter') ?? "asc";
-    _sort = prefs.getString('sort') ?? "id";
+    _filter = FilterList.values.firstWhere(
+        (e) => e.toString() == prefs.getString('filter'),
+        orElse: () => FilterList.desc);
+    _sort = SortList.values.firstWhere(
+        (e) => e.toString() == prefs.getString('sort'),
+        orElse: () => SortList.id);
     _showCompleted = prefs.getBool('showCompleted') ?? true;
     _useCategorySort = prefs.getBool('useCategorySort') ?? false;
     _detailedView = prefs.getBool('detailedView') ?? true;

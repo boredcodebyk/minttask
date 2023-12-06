@@ -26,47 +26,12 @@ class _ReorderListViewState extends State<ReorderListView> {
   late List<TaskData> completedTask;
   late List<TaskData> incompletedTaskUnpinned;
   List<int> tempCatList = [];
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    taskListPinned = context.watch<TaskListProvider>().taskListPinned;
-    taskListUnpinned = context.watch<TaskListProvider>().taskListUnpinned;
-    completedTask = context.watch<TaskListProvider>().completedTaskList;
-    incompletedTaskUnpinned =
-        context.watch<TaskListProvider>().incompletedTaskUnpinnedList;
-  }
+  final isarInstance = IsarHelper.instance;
+  FilterList _filter = FilterList.asc;
 
   @override
   Widget build(BuildContext context) {
-    TaskListProvider taskListProvider = context.read<TaskListProvider>();
     TodoListModel tdl = Provider.of<TodoListModel>(context);
-    SettingsModel settingsModel = Provider.of<SettingsModel>(context);
-    List<CategoryList> categoryListFilter =
-        context.watch<TaskListProvider>().categoryList;
-
-    print(taskListProvider.sortLabelSelection);
-    print("object");
-    taskListPinned.sort(
-      (a, b) => tdl.filter == "asc"
-          ? a.id!.compareTo(b.orderID!)
-          : b.id!.compareTo(a.orderID!),
-    );
-    taskListUnpinned.sort(
-      (a, b) => tdl.filter == "asc"
-          ? a.id!.compareTo(b.orderID!)
-          : b.id!.compareTo(a.orderID!),
-    );
-    incompletedTaskUnpinned.sort(
-      (a, b) => tdl.filter == "asc"
-          ? a.id!.compareTo(b.orderID!)
-          : b.id!.compareTo(a.orderID!),
-    );
-    completedTask.sort(
-      (a, b) => tdl.filter == "asc"
-          ? a.id!.compareTo(b.orderID!)
-          : b.id!.compareTo(a.orderID!),
-    );
-
     return Scaffold(
       backgroundColor: Color(
           CorePalette.of(Theme.of(context).colorScheme.primary.value)
@@ -78,339 +43,61 @@ class _ReorderListViewState extends State<ReorderListView> {
                 Theme.of(context).colorScheme.primary.value)
             .neutral
             .get(Theme.of(context).brightness == Brightness.light ? 92 : 10)),
+        actions: [
+          IconButton(
+              onPressed: () {
+                if (_filter == FilterList.asc) {
+                  setState(() {
+                    _filter = FilterList.desc;
+                  });
+                } else {
+                  setState(() {
+                    _filter = FilterList.asc;
+                  });
+                }
+              },
+              icon: const Icon(Icons.sort_by_alpha))
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (taskListPinned.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text("Pinned - ${taskListPinned.length}"),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Card(
-                  elevation: 0,
-                  clipBehavior: Clip.antiAlias,
-                  color: Colors.transparent,
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                  child: ReorderableListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    clipBehavior: Clip.antiAlias,
-                    physics: const NeverScrollableScrollPhysics(),
-                    onReorder: (int oldIndex, int newIndex) {
-                      if (oldIndex < newIndex) {
-                        newIndex -= 1;
-                      }
-                      taskListProvider.reorderTasks(
-                          taskListPinned[oldIndex].orderID!,
-                          taskListPinned[newIndex].orderID!);
-                    },
-                    itemCount: taskListPinned.length,
-                    itemBuilder: (context, index) {
-                      var task = taskListPinned[index];
-
-                      return _dismissableListBuilder(
-                        context,
-                        Padding(
-                          key: Key("$index"),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 0, vertical: 1),
-                          child: ListTile(
-                            subtitle: tdl.detailedView
-                                ? task.doNotify ?? false
-                                    ? Text(
-                                        "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
-                                    : const Text("")
-                                : null,
-                            tileColor: Color(CorePalette.of(
-                                    Theme.of(context).colorScheme.primary.value)
-                                .neutral
-                                .get(Theme.of(context).brightness ==
-                                        Brightness.light
-                                    ? 98
-                                    : 17)),
-                            title: Text(
-                              task.title!,
-                              style: TextStyle(
-                                  decoration: task.doneStatus!
-                                      ? TextDecoration.lineThrough
-                                      : null),
-                            ),
-                            trailing: Icon(Icons.circle,
-                                color: task.priority! == Priority.low
-                                    ? ColorScheme.fromSeed(
-                                            seedColor: const Color.fromARGB(
-                                                1, 223, 217, 255))
-                                        .primary
-                                    : task.priority! == Priority.moderate
-                                        ? ColorScheme.fromSeed(
-                                                seedColor: const Color.fromARGB(
-                                                    1, 223, 217, 255))
-                                            .tertiary
-                                        : ColorScheme.fromSeed(
-                                                seedColor: const Color.fromARGB(
-                                                    1, 223, 217, 255))
-                                            .error),
-                          ),
-                        ),
-                        task.id,
-                        context.read<TaskListProvider>(),
-                        task.pinned!,
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-            if (taskListUnpinned.isNotEmpty) ...[
-              if (tdl.useCategorySort)
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: taskListProvider.sortLabelSelection.entries
-                      .where((element) => element.value)
-                      .map((e) => e.key)
-                      .toList()
-                      .length,
-                  itemBuilder: (context, index) {
-                    var key = taskListProvider.sortLabelSelection.entries
-                        .where((element) => element.value)
-                        .map((e) => e.key)
-                        .toList()[index];
-                    var selectedLabelName = taskListProvider.categoryList
-                        .where((element) => element.id == key)
-                        .map((e) => e.name)
-                        .toList()
-                        .first
-                        .toString();
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(selectedLabelName),
-                        ),
-                        Card(
-                          elevation: 0,
-                          clipBehavior: Clip.antiAlias,
-                          color: Colors.transparent,
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 0),
-                          child: ReorderableListView.builder(
-                            shrinkWrap: true,
-                            padding: EdgeInsets.zero,
-                            clipBehavior: Clip.antiAlias,
-                            physics: const NeverScrollableScrollPhysics(),
-                            onReorder: (int oldIndex, int newIndex) {
-                              if (oldIndex < newIndex) {
-                                newIndex -= 1;
-                              }
-                              taskListProvider.reorderTasks(
-                                  taskListUnpinned[oldIndex].orderID!,
-                                  taskListUnpinned[newIndex].orderID!);
-                            },
-                            itemCount: taskListUnpinned
-                                .where(
-                                    (element) => element.labels!.contains(key))
-                                .toList()
-                                .length,
-                            itemBuilder: (context, index) {
-                              var task = taskListUnpinned
-                                  .where((element) =>
-                                      element.labels!.contains(key))
-                                  .toList()[index];
-
-                              return _dismissableListBuilder(
-                                context,
-                                Padding(
-                                  key: Key("$index"),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 0, vertical: 1),
-                                  child: ListTile(
-                                    subtitle: tdl.detailedView
-                                        ? task.doNotify ?? false
-                                            ? Text(
-                                                "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
-                                            : const Text("")
-                                        : null,
-                                    tileColor: Color(CorePalette.of(
-                                            Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                                .value)
-                                        .neutral
-                                        .get(Theme.of(context).brightness ==
-                                                Brightness.light
-                                            ? 98
-                                            : 17)),
-                                    title: Text(
-                                      task.title!,
-                                      style: TextStyle(
-                                          decoration: task.doneStatus!
-                                              ? TextDecoration.lineThrough
-                                              : null),
-                                    ),
-                                    trailing: Icon(Icons.circle,
-                                        color: task.priority! == Priority.low
-                                            ? ColorScheme.fromSeed(
-                                                    seedColor:
-                                                        const Color.fromARGB(
-                                                            1, 223, 217, 255))
-                                                .primary
-                                            : task.priority! ==
-                                                    Priority.moderate
-                                                ? ColorScheme.fromSeed(
-                                                        seedColor: const Color
-                                                            .fromARGB(
-                                                            1, 223, 217, 255))
-                                                    .tertiary
-                                                : ColorScheme.fromSeed(
-                                                        seedColor: const Color
-                                                            .fromARGB(
-                                                            1, 223, 217, 255))
-                                                    .error),
-                                  ),
-                                ),
-                                task.id,
-                                context.read<TaskListProvider>(),
-                                task.pinned!,
-                              );
-                            },
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text("..."),
-                        ),
-                      ],
-                    );
-                  },
-                )
-              else ...[
-                if (settingsModel.showCompletedTask) ...[
-                  if (taskListPinned.isNotEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text("Others"),
-                    ),
-                  Card(
-                    elevation: 0,
-                    clipBehavior: Clip.antiAlias,
-                    color: Colors.transparent,
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                    child: ReorderableListView.builder(
-                      shrinkWrap: true,
-                      padding: EdgeInsets.zero,
-                      clipBehavior: Clip.antiAlias,
-                      physics: const NeverScrollableScrollPhysics(),
-                      onReorder: (int oldIndex, int newIndex) {
-                        if (oldIndex < newIndex) {
-                          newIndex -= 1;
-                        }
-                        taskListProvider.reorderTasks(
-                            taskListUnpinned[oldIndex].orderID!,
-                            taskListUnpinned[newIndex].orderID!);
-                      },
-                      itemCount: taskListUnpinned.length,
-                      itemBuilder: (context, index) {
-                        var task = taskListUnpinned[index];
-
-                        return _dismissableListBuilder(
-                          context,
-                          Padding(
-                            key: Key("$index"),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 0, vertical: 1),
-                            child: ListTile(
-                              subtitle: tdl.detailedView
-                                  ? task.doNotify ?? false
-                                      ? Text(
-                                          "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
-                                      : const Text("")
-                                  : null,
-                              tileColor: Color(CorePalette.of(Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .value)
-                                  .neutral
-                                  .get(Theme.of(context).brightness ==
-                                          Brightness.light
-                                      ? 98
-                                      : 17)),
-                              title: Text(
-                                task.title!,
-                                style: TextStyle(
-                                    decoration: task.doneStatus!
-                                        ? TextDecoration.lineThrough
-                                        : null),
-                              ),
-                              trailing: Icon(Icons.circle,
-                                  color: task.priority! == Priority.low
-                                      ? ColorScheme.fromSeed(
-                                              seedColor: const Color.fromARGB(
-                                                  1, 223, 217, 255))
-                                          .primary
-                                      : task.priority! == Priority.moderate
-                                          ? ColorScheme.fromSeed(
-                                                  seedColor:
-                                                      const Color.fromARGB(
-                                                          1, 223, 217, 255))
-                                              .tertiary
-                                          : ColorScheme.fromSeed(
-                                                  seedColor:
-                                                      const Color.fromARGB(
-                                                          1, 223, 217, 255))
-                                              .error),
-                            ),
-                          ),
-                          task.id,
-                          context.read<TaskListProvider>(),
-                          task.pinned!,
-                        );
-                      },
-                    ),
-                  ),
-                ] else ...[
-                  if (taskListPinned.isNotEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text("Others"),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Card(
-                      elevation: 0,
-                      clipBehavior: Clip.antiAlias,
-                      color: Colors.transparent,
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 0),
-                      child: ReorderableListView.builder(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
+            StreamBuilder(
+              stream:
+                  isarInstance.listTasks(sort: SortList.id, filter: _filter),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  var listTask = snapshot.data;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Card(
+                        elevation: 0,
                         clipBehavior: Clip.antiAlias,
-                        physics: const NeverScrollableScrollPhysics(),
-                        onReorder: (int oldIndex, int newIndex) {
-                          if (oldIndex < newIndex) {
-                            newIndex -= 1;
-                          }
-                          taskListProvider.reorderTasks(
-                              incompletedTaskUnpinned[oldIndex].orderID!,
-                              incompletedTaskUnpinned[newIndex].orderID!);
-                        },
-                        itemCount: incompletedTaskUnpinned.length,
-                        itemBuilder: (context, index) {
-                          var task = incompletedTaskUnpinned[index];
-
-                          return _dismissableListBuilder(
-                            context,
-                            Padding(
-                              key: Key("$index"),
+                        color: Colors.transparent,
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 0),
+                        child: ReorderableListView.builder(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          clipBehavior: Clip.antiAlias,
+                          physics: const NeverScrollableScrollPhysics(),
+                          onReorder: (int oldIndex, int newIndex) {
+                            if (oldIndex < newIndex) {
+                              newIndex -= 1;
+                            }
+                            isarInstance.reorderTasks(
+                              listTask[oldIndex].orderID!,
+                              listTask[newIndex].orderID!,
+                            );
+                          },
+                          itemCount: listTask!.length,
+                          itemBuilder: (context, index) {
+                            var task = listTask[index];
+                            return Padding(
+                              key: UniqueKey(),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 0, vertical: 1),
                               child: ListTile(
@@ -455,111 +142,19 @@ class _ReorderListViewState extends State<ReorderListView> {
                                                             1, 223, 217, 255))
                                                 .error),
                               ),
-                            ),
-                            task.id,
-                            context.read<TaskListProvider>(),
-                            task.pinned!,
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  ExpansionTile(
-                    title: Text("Completed - ${completedTask.length}"),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
-                        child: Card(
-                          elevation: 0,
-                          clipBehavior: Clip.antiAlias,
-                          color: Colors.transparent,
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 0),
-                          child: ReorderableListView.builder(
-                            shrinkWrap: true,
-                            padding: EdgeInsets.zero,
-                            clipBehavior: Clip.antiAlias,
-                            physics: const NeverScrollableScrollPhysics(),
-                            onReorder: (int oldIndex, int newIndex) {
-                              if (oldIndex < newIndex) {
-                                newIndex -= 1;
-                              }
-                              taskListProvider.reorderTasks(
-                                  completedTask[oldIndex].orderID!,
-                                  completedTask[newIndex].orderID!);
-                            },
-                            itemCount: completedTask.length,
-                            itemBuilder: (context, index) {
-                              var task = completedTask[index];
-
-                              return _dismissableListBuilder(
-                                context,
-                                Padding(
-                                  key: Key("$index"),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 0, vertical: 1),
-                                  child: ListTile(
-                                    subtitle: tdl.detailedView
-                                        ? task.doNotify ?? false
-                                            ? Text(
-                                                "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
-                                            : const Text("")
-                                        : null,
-                                    tileColor: Color(CorePalette.of(
-                                            Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                                .value)
-                                        .neutral
-                                        .get(Theme.of(context).brightness ==
-                                                Brightness.light
-                                            ? 98
-                                            : 17)),
-                                    title: Text(
-                                      task.title!,
-                                      style: TextStyle(
-                                          decoration: task.doneStatus!
-                                              ? TextDecoration.lineThrough
-                                              : null),
-                                    ),
-                                    trailing: Icon(Icons.circle,
-                                        color: task.priority! == Priority.low
-                                            ? ColorScheme.fromSeed(
-                                                    seedColor:
-                                                        const Color.fromARGB(
-                                                            1, 223, 217, 255))
-                                                .primary
-                                            : task.priority! ==
-                                                    Priority.moderate
-                                                ? ColorScheme.fromSeed(
-                                                        seedColor: const Color
-                                                            .fromARGB(
-                                                            1, 223, 217, 255))
-                                                    .tertiary
-                                                : ColorScheme.fromSeed(
-                                                        seedColor: const Color
-                                                            .fromARGB(
-                                                            1, 223, 217, 255))
-                                                    .error),
-                                  ),
-                                ),
-                                task.id,
-                                context.read<TaskListProvider>(),
-                                task.pinned!,
-                              );
-                            },
-                          ),
+                            );
+                          },
                         ),
-                      ),
+                      )
                     ],
-                  )
-                ]
-              ]
-            ] else if (taskListProvider.taskListUnpinned.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text("List is empty"),
-              ),
+                  );
+                }
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text("Empty"),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -570,7 +165,7 @@ class _ReorderListViewState extends State<ReorderListView> {
       TaskListProvider taskListProvider, bool pin) {
     SettingsModel settingsModel = Provider.of<SettingsModel>(context);
     return Dismissible(
-        key: ValueKey(id),
+        key: UniqueKey(),
         confirmDismiss: (direction) async {
           if (direction == DismissDirection.startToEnd) {
             switch (settingsModel.leftSwipeAction) {

@@ -1,6 +1,5 @@
 import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
-import 'package:marquee/marquee.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:minttask/model/db.dart';
 import 'package:minttask/model/settings_model.dart';
@@ -12,13 +11,16 @@ import '../../model/db_model.dart';
 import '../pages.dart';
 
 class ListViewCard extends ListTile {
-  const ListViewCard({
+  ListViewCard({
     super.key,
     required this.id,
     required this.taskTitle,
     required this.description,
     required this.doneStatus,
     required this.selectedPriority,
+    required this.archive,
+    required this.trash,
+    required this.pinned,
     required this.subtext,
   });
   final int id;
@@ -26,12 +28,14 @@ class ListViewCard extends ListTile {
   final String description;
   final bool doneStatus;
   final Priority selectedPriority;
+  final bool archive;
+  final bool trash;
+  final bool pinned;
   final Widget subtext;
-
+  final isarInstance = IsarHelper.instance;
   @override
   Widget build(BuildContext context) {
     TodoListModel tdl = Provider.of<TodoListModel>(context);
-    TaskListProvider taskListProvider = context.read<TaskListProvider>();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 1),
       child: OpenContainer(
@@ -53,7 +57,7 @@ class ListViewCard extends ListTile {
                         : 17)),
         closedBuilder: (context, action) => ListTile(
           subtitle: tdl.detailedView ? subtext : null,
-          onLongPress: () => _bottomSheet(context, id, taskListProvider),
+          onLongPress: () => _bottomSheet(context: context),
           tileColor: Color(CorePalette.of(
                   Theme.of(context).colorScheme.primary.value)
               .neutral
@@ -63,7 +67,7 @@ class ListViewCard extends ListTile {
           },
           leading: Checkbox(
             value: doneStatus,
-            onChanged: (value) => taskListProvider.markTaskDone(id, value!),
+            onChanged: (value) => isarInstance.markTaskDone(id, value!),
           ),
           title: Text(
             taskTitle,
@@ -88,7 +92,7 @@ class ListViewCard extends ListTile {
     );
   }
 
-  Future _bottomSheet(context, int id, TaskListProvider taskListProvider) {
+  Future _bottomSheet({context}) {
     return showModalBottomSheet(
       backgroundColor: Color(
           CorePalette.of(Theme.of(context).colorScheme.primary.value)
@@ -109,55 +113,203 @@ class ListViewCard extends ListTile {
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: ListTile(
-                  tileColor: Color(CorePalette.of(
-                          Theme.of(context).colorScheme.primary.value)
-                      .neutral
-                      .get(Theme.of(context).colorScheme.brightness ==
-                              Brightness.light
-                          ? 98
-                          : 17)),
-                  leading: const Icon(Icons.archive_outlined),
-                  title: const Text("Archive"),
-                  onTap: () async {
-                    await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Move to archive'),
-                        content: const Text('Are you sure to move to archive?'),
-                        actions: [
-                          TextButton(
-                              child: const Text("Yes"),
-                              onPressed: () {
-                                Navigator.pop(context, true);
-                                taskListProvider.moveToArchive(id);
-                                //_deleteTodo(todo["id"]);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text("Moved to archive"),
-                                    behavior: SnackBarBehavior.floating,
-                                    action: SnackBarAction(
-                                      label: "Undo",
-                                      onPressed: () {
-                                        taskListProvider.undoArchive(id);
-                                      },
+              if (archive) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: ListTile(
+                    tileColor: Color(CorePalette.of(
+                            Theme.of(context).colorScheme.primary.value)
+                        .neutral
+                        .get(Theme.of(context).colorScheme.brightness ==
+                                Brightness.light
+                            ? 98
+                            : 17)),
+                    leading: const Icon(Icons.unarchive_outlined),
+                    title: const Text("Unarchive"),
+                    onTap: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Unarchive'),
+                          content: const Text('Are you sure to undo archive?'),
+                          actions: [
+                            TextButton(
+                                child: const Text("Yes"),
+                                onPressed: () {
+                                  Navigator.pop(context, true);
+                                  isarInstance.undoArchive(id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text("Unarchived"),
+                                      behavior: SnackBarBehavior.floating,
+                                      action: SnackBarAction(
+                                        label: "Undo",
+                                        onPressed: () {
+                                          isarInstance.moveToArchive(id);
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                );
-                              }),
-                          TextButton(
-                              child: const Text("No"),
-                              onPressed: () => Navigator.pop(context, false)),
-                        ],
-                      ),
-                    );
-
-                    if (context.mounted) Navigator.of(context).pop();
-                  },
+                                  );
+                                }),
+                            TextButton(
+                                child: const Text("No"),
+                                onPressed: () => Navigator.pop(context, false)),
+                          ],
+                        ),
+                      );
+                      if (context.mounted) Navigator.of(context).pop();
+                    },
+                  ),
                 ),
-              ),
+              ] else ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: ListTile(
+                    tileColor: Color(CorePalette.of(
+                            Theme.of(context).colorScheme.primary.value)
+                        .neutral
+                        .get(Theme.of(context).colorScheme.brightness ==
+                                Brightness.light
+                            ? 98
+                            : 17)),
+                    leading: const Icon(Icons.archive_outlined),
+                    title: const Text("Archive"),
+                    onTap: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Move to archive'),
+                          content:
+                              const Text('Are you sure to move to archive?'),
+                          actions: [
+                            TextButton(
+                                child: const Text("Yes"),
+                                onPressed: () {
+                                  Navigator.pop(context, true);
+                                  isarInstance.moveToArchive(id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text("Moved to archive"),
+                                      behavior: SnackBarBehavior.floating,
+                                      action: SnackBarAction(
+                                        label: "Undo",
+                                        onPressed: () {
+                                          isarInstance.undoArchive(id);
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                }),
+                            TextButton(
+                                child: const Text("No"),
+                                onPressed: () => Navigator.pop(context, false)),
+                          ],
+                        ),
+                      );
+                      if (context.mounted) Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              ],
+              if (trash) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: ListTile(
+                    tileColor: Color(CorePalette.of(
+                            Theme.of(context).colorScheme.primary.value)
+                        .neutral
+                        .get(Theme.of(context).colorScheme.brightness ==
+                                Brightness.light
+                            ? 98
+                            : 17)),
+                    leading: const Icon(Icons.restore_from_trash),
+                    title: const Text("Restore"),
+                    onTap: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Restore'),
+                          content: const Text('Are you sure to restore?'),
+                          actions: [
+                            TextButton(
+                                child: const Text("Yes"),
+                                onPressed: () {
+                                  Navigator.pop(context, true);
+                                  isarInstance.undoTrash(id);
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text("Restored"),
+                                      behavior: SnackBarBehavior.floating,
+                                      action: SnackBarAction(
+                                        label: "Undo",
+                                        onPressed: () {
+                                          isarInstance.moveToTrash(id);
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                }),
+                            TextButton(
+                                child: const Text("No"),
+                                onPressed: () => Navigator.pop(context, false)),
+                          ],
+                        ),
+                      );
+
+                      if (context.mounted) Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              ] else ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: ListTile(
+                    tileColor: Color(CorePalette.of(
+                            Theme.of(context).colorScheme.primary.value)
+                        .neutral
+                        .get(Theme.of(context).colorScheme.brightness ==
+                                Brightness.light
+                            ? 98
+                            : 17)),
+                    leading: const Icon(Icons.delete_outline_outlined),
+                    title: const Text("Trash"),
+                    onTap: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Move to trash'),
+                          content: const Text('Are you sure to move to trash?'),
+                          actions: [
+                            TextButton(
+                                child: const Text("Yes"),
+                                onPressed: () {
+                                  Navigator.pop(context, true);
+                                  isarInstance.moveToTrash(id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text("Moved to trash"),
+                                      behavior: SnackBarBehavior.floating,
+                                      action: SnackBarAction(
+                                        label: "Undo",
+                                        onPressed: () {
+                                          isarInstance.undoTrash(id);
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                }),
+                            TextButton(
+                                child: const Text("No"),
+                                onPressed: () => Navigator.pop(context, false)),
+                          ],
+                        ),
+                      );
+                      if (context.mounted) Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              ],
               Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: ListTile(
@@ -168,41 +320,29 @@ class ListViewCard extends ListTile {
                               Brightness.light
                           ? 98
                           : 17)),
-                  leading: const Icon(Icons.delete_outline_outlined),
-                  title: const Text("Trash"),
+                  leading: pinned
+                      ? const Icon(Icons.push_pin)
+                      : const Icon(Icons.push_pin_outlined),
+                  title: pinned ? const Text("Unpin") : const Text("Pin"),
                   onTap: () async {
-                    await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Move to trash'),
-                        content: const Text('Are you sure to move to trash?'),
-                        actions: [
-                          TextButton(
-                              child: const Text("Yes"),
-                              onPressed: () {
-                                Navigator.pop(context, true);
-                                taskListProvider.moveToTrash(id);
-                                //_deleteTodo(todo["id"]);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text("Moved to trash"),
-                                    behavior: SnackBarBehavior.floating,
-                                    action: SnackBarAction(
-                                      label: "Undo",
-                                      onPressed: () {
-                                        taskListProvider.undoTrash(id);
-                                      },
-                                    ),
-                                  ),
-                                );
-                              }),
-                          TextButton(
-                              child: const Text("No"),
-                              onPressed: () => Navigator.pop(context, false)),
-                        ],
+                    Navigator.of(context).pop();
+                    if (pinned) {
+                      isarInstance.pinToggle(id, false);
+                    } else {
+                      isarInstance.pinToggle(id, true);
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: pinned
+                            ? const Text("Unpinned")
+                            : archive
+                                ? const Text("Unarchived and pinned")
+                                : trash
+                                    ? const Text("Restored and pinned")
+                                    : const Text("Pinned"),
+                        behavior: SnackBarBehavior.floating,
                       ),
                     );
-                    if (context.mounted) Navigator.of(context).pop();
                   },
                 ),
               ),

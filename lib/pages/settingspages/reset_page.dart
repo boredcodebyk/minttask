@@ -13,9 +13,10 @@ class ResetPage extends StatefulWidget {
 }
 
 class _ResetPageState extends State<ResetPage> {
+  final isarInstance = IsarHelper.instance;
+
   @override
   Widget build(BuildContext context) {
-    TaskListProvider taskListProvider = context.watch<TaskListProvider>();
     return Scaffold(
       body: CustomScrollView(
         slivers: <Widget>[
@@ -54,7 +55,7 @@ class _ResetPageState extends State<ResetPage> {
                         height: 60,
                         child: FilledButton(
                           onPressed: () {
-                            taskListProvider.resetDB();
+                            isarInstance.resetDB();
                             Navigator.of(context).pop();
 
                             ScaffoldMessenger.of(context)

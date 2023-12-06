@@ -67,20 +67,15 @@ class ListSearchDelegate extends SearchDelegate {
   @override
   Widget buildResults(BuildContext context) {
     Stream<List<TaskData>> searchBuild() async* {
-      final queryBuild = context
-          .read<TaskListProvider>()
-          .isar!
-          .taskDatas
-          .where()
-          .filter()
-          .group((q) => q
-              .titleMatches(query, caseSensitive: false)
-              .xor()
-              .descriptionMatches(query, caseSensitive: false)
-              .xor()
-              .titleContains(query, caseSensitive: false)
-              .xor()
-              .descriptionContains(query, caseSensitive: false));
+      final isarInstance = await IsarHelper.instance.isar;
+      final queryBuild = isarInstance.taskDatas.where().filter().group((q) => q
+          .titleMatches(query, caseSensitive: false)
+          .xor()
+          .descriptionMatches(query, caseSensitive: false)
+          .xor()
+          .titleContains(query, caseSensitive: false)
+          .xor()
+          .descriptionContains(query, caseSensitive: false));
       await for (final results in queryBuild.watch(fireImmediately: true)) {
         if (results.isNotEmpty) {
           yield results;
@@ -131,20 +126,15 @@ class ListSearchDelegate extends SearchDelegate {
   @override
   Widget buildSuggestions(BuildContext context) {
     Stream<List<TaskData>> searchBuild() async* {
-      final queryBuild = context
-          .read<TaskListProvider>()
-          .isar!
-          .taskDatas
-          .where()
-          .filter()
-          .group((q) => q
-              .titleMatches(query, caseSensitive: false)
-              .xor()
-              .descriptionMatches(query, caseSensitive: false)
-              .xor()
-              .titleContains(query, caseSensitive: false)
-              .xor()
-              .descriptionContains(query, caseSensitive: false));
+      final isarInstance = await IsarHelper.instance.isar;
+      final queryBuild = isarInstance.taskDatas.where().filter().group((q) => q
+          .titleMatches(query, caseSensitive: false)
+          .xor()
+          .descriptionMatches(query, caseSensitive: false)
+          .xor()
+          .titleContains(query, caseSensitive: false)
+          .xor()
+          .descriptionContains(query, caseSensitive: false));
       await for (final results in queryBuild.watch(fireImmediately: true)) {
         if (results.isNotEmpty) {
           yield results;
@@ -209,7 +199,6 @@ class ListViewCardSearch extends ListTile {
 
   @override
   Widget build(BuildContext context) {
-    TaskListProvider taskListProvider = context.read<TaskListProvider>();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 1),
       child: OpenContainer(
@@ -229,7 +218,7 @@ class ListViewCardSearch extends ListTile {
           },
           leading: Checkbox(
             value: doneStatus,
-            onChanged: (value) => taskListProvider.markTaskDone(id, value!),
+            onChanged: (value) => IsarHelper.instance.markTaskDone(id, value!),
           ),
           title: Text(
             taskTitle,

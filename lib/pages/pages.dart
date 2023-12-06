@@ -6,6 +6,7 @@ export './trash.dart';
 export './all_list.dart';
 export './search_page.dart';
 export './setup.dart';
+export 'addtask_page.dart' show AddTaskBox;
 export 'settingspages/backuprestore.dart';
 export 'settingspages/swipeaction_page.dart' show SwipeActionPage;
 export 'settingspages/theme_page.dart';

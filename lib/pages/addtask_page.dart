@@ -7,10 +7,11 @@ import 'package:intl/intl.dart';
 import 'package:minttask/model/db.dart';
 import 'package:minttask/model/db_model.dart';
 import 'package:minttask/pages/ui/category_ui.dart';
+import 'package:minttask/pages/ui/labeleditor_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../utils/utils.dart';
+import '../utils/utils.dart';
 
 Priority _selectedPriority = Priority.low;
 
@@ -29,11 +30,13 @@ class AddTaskBox extends StatefulWidget {
 
 class _AddTaskBoxState extends State<AddTaskBox> {
   final TextEditingController _titleController = TextEditingController();
-  FleatherController _fleatherController = FleatherController();
+  final FleatherController _fleatherController = FleatherController();
   final TextEditingController _selectedCategoryLabelName =
       TextEditingController();
 
   Map<int, bool> selectedCategoryLabel = {};
+
+  List<int> selectedLabels = [];
 
   DateTime? reminderValue;
   bool hasReminder = false;
@@ -62,15 +65,11 @@ class _AddTaskBoxState extends State<AddTaskBox> {
 
   @override
   Widget build(BuildContext context) {
-    TaskListProvider taskListProvider = context.read<TaskListProvider>();
     return Scaffold(
       appBar: AppBar(
-        leading: Hero(
-          tag: "drawerIconToBackIcon",
-          child: IconButton(
-            icon: const Icon(Icons.close_rounded),
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
       body: Column(
@@ -242,18 +241,19 @@ class _AddTaskBoxState extends State<AddTaskBox> {
                 Padding(
                   padding: const EdgeInsets.only(right: 16),
                   child: ActionChip(
-                    avatar: selectedCategoryLabel.isEmpty
+                    avatar: selectedLabels.isEmpty
                         ? const Icon(Icons.label_outline)
                         : const Icon(Icons.label),
                     label: const Text("Labels"),
-                    onPressed: () {
-                      Navigator.push(
-                          context,
-                          createRouteSharedAxisTransition(
-                            const CategoryListUI(
-                              mode: CategorySelectMode.add,
-                            ),
-                          ));
+                    onPressed: () async {
+                      final result = await showModalBottomSheet(
+                          context: context,
+                          builder: (context) =>
+                              LabelEditor(selectedValue: selectedLabels));
+                      if (!mounted) return;
+                      setState(() {
+                        selectedLabels = result ?? [];
+                      });
                     },
                   ),
                 ),
@@ -360,34 +360,19 @@ class _AddTaskBoxState extends State<AddTaskBox> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        heroTag: "addUI",
+        heroTag: "",
         onPressed: () {
           if (_titleController.text != '') {
-            List<int> tempCatList = [];
-            selectedCategoryLabel.forEach((key, value) {
-              if (value) {
-                tempCatList.add(key);
-              }
-            });
             Navigator.pop(context);
             print(jsonEncode(_fleatherController.document.toJson()));
-            taskListProvider.addTask(
-              _titleController.text,
-              jsonEncode(_fleatherController.document.toJson()),
-              taskListProvider.addLabelSelection.entries
-                  .where((element) => element.value)
-                  .map((e) => e.key)
-                  .toList(),
-              hasReminder,
-              reminderValue ?? DateTime.now(),
-              _selectedPriority,
+            IsarHelper.instance.addTask(
+              title: _titleController.text,
+              description: jsonEncode(_fleatherController.document.toJson()),
+              labels: selectedLabels,
+              doNotify: hasReminder,
+              notifyTime: reminderValue ?? DateTime.now(),
+              selectedPriority: _selectedPriority,
             );
-
-            print(jsonEncode(_fleatherController.document.toJson()));
-            _titleController.clear();
-            taskListProvider.addLabelSelection.forEach((key, value) {
-              taskListProvider.addLabelSelection[key] = false;
-            });
           } else {
             null;
           }

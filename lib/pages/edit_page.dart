@@ -5,6 +5,7 @@ import 'package:fleather/fleather.dart';
 import 'package:intl/intl.dart';
 import 'package:minttask/model/db.dart';
 import 'package:minttask/model/db_model.dart';
+import 'package:minttask/pages/ui/labeleditor_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'package:flutter/scheduler.dart' as scd;
@@ -33,34 +34,31 @@ class EditPage extends StatefulWidget {
 
 class _EditPageState extends State<EditPage> {
   final TextEditingController _titleController = TextEditingController();
-
   FleatherController _fleatherController = FleatherController();
-
-  Map<int, bool> selectedCategoryLabel = {};
-
-  late TaskListProvider catList;
-  Map<int, bool> tempSelection = {};
-
-  Future<bool> checkForChanges() async {
-    final updateTask = await context
-        .read<TaskListProvider>()
-        .isarCollectionTaskData!
-        .get(widget.todoId);
-
-    return (_titleController.text == updateTask?.title) &&
-        (jsonEncode(_fleatherController.document.toJson()) ==
-            updateTask?.description);
-  }
+  List<int> selectedLabels = [];
+  bool archive = false;
+  bool trash = false;
+  bool pinned = false;
+  bool doneStatus = false;
+  bool hasReminder = false;
+  Priority selectedPriority = Priority.low;
+  DateTime reminderValue = DateTime.now();
 
   void _getdata() async {
-    final updateTask = await context
-        .read<TaskListProvider>()
-        .isarCollectionTaskData!
-        .get(widget.todoId);
+    final isarInstance = IsarHelper.instance;
+    var updateTask = await isarInstance.getEachTaskData(id: widget.todoId);
+    _titleController.text = updateTask!.title ?? "";
+    _fleatherController = FleatherController(ParchmentDocument.fromJson(
+        jsonDecode(updateTask.description ?? r"""[{"insert":"\n"}]""")));
     setState(() {
-      _titleController.text = updateTask!.title!;
-      _fleatherController = FleatherController(
-          ParchmentDocument.fromJson(jsonDecode(updateTask.description!)));
+      archive = updateTask.archive!;
+      trash = updateTask.trash!;
+      pinned = updateTask.pinned!;
+      doneStatus = updateTask.doneStatus!;
+      hasReminder = updateTask.doNotify!;
+      selectedPriority = updateTask.priority!;
+      selectedLabels = updateTask.labels!;
+      reminderValue = updateTask.notifyTime!;
     });
   }
 
@@ -102,21 +100,12 @@ class _EditPageState extends State<EditPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    catList = Provider.of<TaskListProvider>(context);
   }
 
   @override
   void initState() {
     super.initState();
-    scd.SchedulerBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        selectedCategoryLabel = {
-          for (var item in catList.categoryList) item.id: false
-        };
-      });
-      catList.sortLabelSelectionModify = selectedCategoryLabel;
-      _getdata();
-    });
+    _getdata();
   }
 
   @override
@@ -128,573 +117,513 @@ class _EditPageState extends State<EditPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<TaskListProvider>(
-      builder: (context, ref, child) {
-        return PopScope(
-          onPopInvoked: (didPop) async {
-            if (didPop) {
-              final doc = jsonEncode(_fleatherController.document.toJson());
-              ref.updateTodoDescription(widget.todoId, doc);
+    return PopScope(
+      onPopInvoked: (didPop) async {
+        if (didPop) {
+          final isarInstance = IsarHelper.instance;
+          isarInstance.updateDescription(
+              id: widget.todoId,
+              description: jsonEncode(_fleatherController.document.toJson()));
+          isarInstance.updateTitle(
+              id: widget.todoId, title: _titleController.text);
+          isarInstance.updateLabels(id: widget.todoId, labels: selectedLabels);
+        }
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          title: const Text("Edit"),
+          actions: [
+            if (archive)
+              IconButton(
+                onPressed: () async {
+                  final result = await showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Move to archive'),
+                      content: const Text('Are you sure to move to archive?'),
+                      actions: [
+                        TextButton(
+                            child: const Text("Yes"),
+                            onPressed: () {
+                              Navigator.pop(context, true);
+                            }),
+                        TextButton(
+                            child: const Text("No"),
+                            onPressed: () => Navigator.pop(context, false)),
+                      ],
+                    ),
+                  );
+                  if (!mounted) return;
+                  if (result ?? false) {
+                    Navigator.of(context).pop();
+                    IsarHelper.instance.moveToArchive(widget.todoId);
 
-              ref.updateTodoTitle(widget.todoId, _titleController.text);
-            }
-          },
-          child: FutureBuilder(
-            future: ref.fetchDataWithID(widget.todoId),
-            builder: (BuildContext context, snapshot) {
-              if (snapshot.hasData) {
-                TaskData data = snapshot.data!;
-
-                return Scaffold(
-                  resizeToAvoidBottomInset: true,
-                  appBar: AppBar(
-                    title: const Text("Edit"),
-                    actions: [
-                      if (!data.archive!)
-                        IconButton(
-                          onPressed: () async {
-                            final result = await showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Move to archive'),
-                                content: const Text(
-                                    'Are you sure to move to archive?'),
-                                actions: [
-                                  TextButton(
-                                      child: const Text("Yes"),
-                                      onPressed: () {
-                                        Navigator.pop(context, true);
-                                      }),
-                                  TextButton(
-                                      child: const Text("No"),
-                                      onPressed: () =>
-                                          Navigator.pop(context, false)),
-                                ],
-                              ),
-                            );
-                            if (!mounted) return;
-                            if (result ?? false) {
-                              Navigator.of(context).pop();
-                              ref.moveToArchive(widget.todoId);
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text("Moved to trash"),
-                                  behavior: SnackBarBehavior.floating,
-                                  action: SnackBarAction(
-                                    label: "Undo",
-                                    onPressed: () {
-                                      ref.undoArchive(widget.todoId);
-                                    },
-                                  ),
-                                ),
-                              );
-                            }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text("Moved to trash"),
+                        behavior: SnackBarBehavior.floating,
+                        action: SnackBarAction(
+                          label: "Undo",
+                          onPressed: () {
+                            IsarHelper.instance.undoArchive(widget.todoId);
                           },
-                          icon: const Icon(Icons.archive_outlined),
-                        )
-                      else
-                        IconButton(
-                          onPressed: () async {
-                            final result = await showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Unarchive'),
-                                content:
-                                    const Text('Are you sure to unarchive?'),
-                                actions: [
-                                  TextButton(
-                                      child: const Text("Yes"),
-                                      onPressed: () {
-                                        Navigator.pop(context, true);
-                                      }),
-                                  TextButton(
-                                      child: const Text("No"),
-                                      onPressed: () =>
-                                          Navigator.pop(context, false)),
-                                ],
-                              ),
-                            );
-                            if (!mounted) return;
-                            if (result ?? false) {
-                              Navigator.of(context).pop();
-                              ref.undoArchive(widget.todoId);
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text("Restored"),
-                                  behavior: SnackBarBehavior.floating,
-                                  action: SnackBarAction(
-                                    label: "Undo",
-                                    onPressed: () {
-                                      ref.moveToArchive(widget.todoId);
-                                    },
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.unarchive_outlined),
-                        ),
-                      if (!data.trash!)
-                        IconButton(
-                          onPressed: () async {
-                            final result = await showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Move to trash'),
-                                content: const Text(
-                                    'Are you sure to move to trash?'),
-                                actions: [
-                                  TextButton(
-                                      child: const Text("Yes"),
-                                      onPressed: () {
-                                        Navigator.pop(context, true);
-                                      }),
-                                  TextButton(
-                                      child: const Text("No"),
-                                      onPressed: () =>
-                                          Navigator.pop(context, false)),
-                                ],
-                              ),
-                            );
-                            if (!mounted) return;
-                            if (result ?? false) {
-                              Navigator.of(context).pop();
-                              ref.moveToTrash(widget.todoId);
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text("Moved to trash"),
-                                  behavior: SnackBarBehavior.floating,
-                                  action: SnackBarAction(
-                                    label: "Undo",
-                                    onPressed: () {
-                                      ref.undoTrash(widget.todoId);
-                                    },
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.delete_outline),
-                        )
-                      else
-                        IconButton(
-                          onPressed: () async {
-                            final result = await showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Restore'),
-                                content: const Text('Are you sure to restore?'),
-                                actions: [
-                                  TextButton(
-                                      child: const Text("Yes"),
-                                      onPressed: () {
-                                        Navigator.pop(context, true);
-                                      }),
-                                  TextButton(
-                                      child: const Text("No"),
-                                      onPressed: () =>
-                                          Navigator.pop(context, false)),
-                                ],
-                              ),
-                            );
-                            if (!mounted) return;
-                            if (result ?? false) {
-                              Navigator.of(context).pop();
-                              ref.undoTrash(widget.todoId);
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text("Restored"),
-                                  behavior: SnackBarBehavior.floating,
-                                  action: SnackBarAction(
-                                    label: "Undo",
-                                    onPressed: () {
-                                      ref.moveToTrash(widget.todoId);
-                                    },
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.restore_from_trash_outlined),
-                        )
-                    ],
-                  ),
-                  body: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 0.0, horizontal: 16.0),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(0),
-                          trailing: Checkbox(
-                            value: data.doneStatus,
-                            onChanged: (value) async {
-                              ref.markTaskDone(widget.todoId, value ?? false);
-                            },
-                          ),
-                          title: TextField(
-                            controller: _titleController,
-                            onChanged: (value) {
-                              setState(() {
-                                _titleController.value =
-                                    TextEditingValue(text: value);
-                              });
-                            },
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              hintText: "Title",
-                              errorText: _titleController.text.isEmpty
-                                  ? "Title can't be empty"
-                                  : null,
-                            ),
-                          ),
                         ),
                       ),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              child: ActionChip(
-                                avatar: Icon(
-                                    data.notifyTime == null || !data.doNotify!
-                                        ? Icons.alarm
-                                        : Icons.alarm_on),
-                                label: Text(
-                                    data.notifyTime == null || !data.doNotify!
-                                        ? "No reminder"
-                                        : DateFormat("E d, h:mm a")
-                                            .format(data.notifyTime!)),
-                                onPressed: () => showDialog(
-                                  context: context,
-                                  builder: (context) => Dialog(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(24.0),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Card(
-                                            margin: const EdgeInsets.all(0),
-                                            color: Colors.transparent,
-                                            elevation: 0,
-                                            child: ListView(
-                                              shrinkWrap: true,
-                                              clipBehavior: Clip.antiAlias,
-                                              children: [
-                                                ListTile(
-                                                  leading: const Icon(Icons
-                                                      .watch_later_outlined),
-                                                  title: Text(
-                                                      "Today ${DateTime.now().hour > 7 ? "evening" : "morning"}"),
-                                                  trailing: Text(
-                                                      DateTime.now().hour > 7
-                                                          ? "6:00 PM"
-                                                          : "8:00 AM"),
-                                                  onTap: () {
-                                                    var today = DateTime.now();
+                    );
+                  }
+                },
+                icon: const Icon(Icons.archive_outlined),
+              )
+            else
+              IconButton(
+                onPressed: () async {
+                  final result = await showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Unarchive'),
+                      content: const Text('Are you sure to unarchive?'),
+                      actions: [
+                        TextButton(
+                            child: const Text("Yes"),
+                            onPressed: () {
+                              Navigator.pop(context, true);
+                            }),
+                        TextButton(
+                            child: const Text("No"),
+                            onPressed: () => Navigator.pop(context, false)),
+                      ],
+                    ),
+                  );
+                  if (!mounted) return;
+                  if (result ?? false) {
+                    Navigator.of(context).pop();
+                    IsarHelper.instance.undoArchive(widget.todoId);
 
-                                                    DateTime.now().hour > 7
-                                                        ? ref.updateReminder(
-                                                            widget.todoId,
-                                                            true,
-                                                            DateTime(
-                                                                today.year,
-                                                                today.month,
-                                                                today.day,
-                                                                18,
-                                                                0,
-                                                                0,
-                                                                0,
-                                                                0))
-                                                        : ref.updateReminder(
-                                                            widget.todoId,
-                                                            true,
-                                                            DateTime(
-                                                                today.year,
-                                                                today.month,
-                                                                today.day,
-                                                                8,
-                                                                0,
-                                                                0,
-                                                                0,
-                                                                0));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text("Restored"),
+                        behavior: SnackBarBehavior.floating,
+                        action: SnackBarAction(
+                          label: "Undo",
+                          onPressed: () {
+                            IsarHelper.instance.moveToArchive(widget.todoId);
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.unarchive_outlined),
+              ),
+            if (trash)
+              IconButton(
+                onPressed: () async {
+                  final result = await showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Move to trash'),
+                      content: const Text('Are you sure to move to trash?'),
+                      actions: [
+                        TextButton(
+                            child: const Text("Yes"),
+                            onPressed: () {
+                              Navigator.pop(context, true);
+                            }),
+                        TextButton(
+                            child: const Text("No"),
+                            onPressed: () => Navigator.pop(context, false)),
+                      ],
+                    ),
+                  );
+                  if (!mounted) return;
+                  if (result ?? false) {
+                    Navigator.of(context).pop();
+                    IsarHelper.instance.moveToTrash(widget.todoId);
 
-                                                    Navigator.of(context).pop();
-                                                  },
-                                                ),
-                                                ListTile(
-                                                  leading: const Icon(Icons
-                                                      .watch_later_outlined),
-                                                  title: const Text("Tomorrow"),
-                                                  trailing:
-                                                      const Text("8:00 AM"),
-                                                  onTap: () {
-                                                    var tomorrow =
-                                                        DateTime.now().add(
-                                                            const Duration(
-                                                                days: 1));
-                                                    ref.updateReminder(
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text("Moved to trash"),
+                        behavior: SnackBarBehavior.floating,
+                        action: SnackBarAction(
+                          label: "Undo",
+                          onPressed: () {
+                            IsarHelper.instance.undoTrash(widget.todoId);
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.delete_outline),
+              )
+            else
+              IconButton(
+                onPressed: () async {
+                  final result = await showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Restore'),
+                      content: const Text('Are you sure to restore?'),
+                      actions: [
+                        TextButton(
+                            child: const Text("Yes"),
+                            onPressed: () {
+                              Navigator.pop(context, true);
+                            }),
+                        TextButton(
+                            child: const Text("No"),
+                            onPressed: () => Navigator.pop(context, false)),
+                      ],
+                    ),
+                  );
+                  if (!mounted) return;
+                  if (result ?? false) {
+                    Navigator.of(context).pop();
+                    IsarHelper.instance.undoTrash(widget.todoId);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text("Restored"),
+                        behavior: SnackBarBehavior.floating,
+                        action: SnackBarAction(
+                          label: "Undo",
+                          onPressed: () {
+                            IsarHelper.instance.moveToTrash(widget.todoId);
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.restore_from_trash_outlined),
+              )
+          ],
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 0.0, horizontal: 16.0),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(0),
+                trailing: Checkbox(
+                  value: doneStatus,
+                  onChanged: (value) async {
+                    IsarHelper.instance
+                        .markTaskDone(widget.todoId, value ?? false);
+                  },
+                ),
+                title: TextField(
+                  controller: _titleController,
+                  onChanged: (value) {
+                    setState(() {
+                      _titleController.value = TextEditingValue(text: value);
+                    });
+                  },
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: "Title",
+                    errorText: _titleController.text.isEmpty
+                        ? "Title can't be empty"
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: ActionChip(
+                      avatar: Icon(hasReminder ? Icons.alarm : Icons.alarm_on),
+                      label: Text(hasReminder
+                          ? "No reminder"
+                          : DateFormat("E d, h:mm a").format(reminderValue)),
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (context) => Dialog(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Card(
+                                  margin: const EdgeInsets.all(0),
+                                  color: Colors.transparent,
+                                  elevation: 0,
+                                  child: ListView(
+                                    shrinkWrap: true,
+                                    clipBehavior: Clip.antiAlias,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(
+                                            Icons.watch_later_outlined),
+                                        title: Text(
+                                            "Today ${DateTime.now().hour > 7 ? "evening" : "morning"}"),
+                                        trailing: Text(DateTime.now().hour > 7
+                                            ? "6:00 PM"
+                                            : "8:00 AM"),
+                                        onTap: () {
+                                          var today = DateTime.now();
+
+                                          DateTime.now().hour > 7
+                                              ? IsarHelper.instance
+                                                  .updateReminder(
                                                       widget.todoId,
                                                       true,
                                                       DateTime(
-                                                          tomorrow.year,
-                                                          tomorrow.month,
-                                                          tomorrow.day,
+                                                          today.year,
+                                                          today.month,
+                                                          today.day,
+                                                          18,
+                                                          0,
+                                                          0,
+                                                          0,
+                                                          0))
+                                              : IsarHelper.instance
+                                                  .updateReminder(
+                                                      widget.todoId,
+                                                      true,
+                                                      DateTime(
+                                                          today.year,
+                                                          today.month,
+                                                          today.day,
                                                           8,
                                                           0,
                                                           0,
                                                           0,
-                                                          0),
-                                                    );
+                                                          0));
 
-                                                    Navigator.of(context).pop();
-                                                  },
-                                                ),
-                                                ListTile(
-                                                  leading: const Icon(Icons
-                                                      .watch_later_outlined),
-                                                  title: Text(DateFormat.EEEE()
-                                                      .format(DateTime.now()
-                                                          .add(const Duration(
-                                                              days: 2)))),
-                                                  trailing:
-                                                      const Text("8:00 AM"),
-                                                  onTap: () {
-                                                    var dayAfterTomorrow =
-                                                        DateTime.now().add(
-                                                            const Duration(
-                                                                days: 2));
-                                                    ref.updateReminder(
-                                                        widget.todoId,
-                                                        true,
-                                                        DateTime(
-                                                            dayAfterTomorrow
-                                                                .year,
-                                                            dayAfterTomorrow
-                                                                .month,
-                                                            dayAfterTomorrow
-                                                                .day,
-                                                            8,
-                                                            0,
-                                                            0,
-                                                            0,
-                                                            0));
-                                                    Navigator.of(context).pop();
-                                                  },
-                                                ),
-                                                ListTile(
-                                                  leading: const Icon(Icons
-                                                      .watch_later_outlined),
-                                                  title: const Text("Custom"),
-                                                  onTap: () async {
-                                                    var remindtime =
-                                                        await showDateTimePicker(
-                                                            context: context);
-                                                    ref.updateReminder(
-                                                        widget.todoId,
-                                                        true,
-                                                        remindtime);
+                                          Navigator.of(context).pop();
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(
+                                            Icons.watch_later_outlined),
+                                        title: const Text("Tomorrow"),
+                                        trailing: const Text("8:00 AM"),
+                                        onTap: () {
+                                          var tomorrow = DateTime.now()
+                                              .add(const Duration(days: 1));
+                                          IsarHelper.instance.updateReminder(
+                                            widget.todoId,
+                                            true,
+                                            DateTime(
+                                                tomorrow.year,
+                                                tomorrow.month,
+                                                tomorrow.day,
+                                                8,
+                                                0,
+                                                0,
+                                                0,
+                                                0),
+                                          );
 
-                                                    if (context.mounted) {
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                    }
-                                                  },
-                                                ),
-                                                ListTile(
-                                                  leading:
-                                                      const Icon(Icons.clear),
-                                                  title: const Text("Clear"),
-                                                  onTap: () {
-                                                    if (data.notifyTime !=
-                                                        null) {
-                                                      ref.updateReminder(
-                                                          widget.todoId,
-                                                          false,
-                                                          DateTime.now());
-                                                    }
-                                                    Navigator.of(context).pop();
-                                                  },
-                                                  enabled:
-                                                      data.notifyTime != null
-                                                          ? true
-                                                          : false,
-                                                )
-                                              ],
-                                            ),
-                                          )
-                                        ],
+                                          Navigator.of(context).pop();
+                                        },
                                       ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(right: 16),
-                              child: ActionChip(
-                                avatar: selectedCategoryLabel.isEmpty
-                                    ? const Icon(Icons.label_outline)
-                                    : const Icon(Icons.label),
-                                label: const Text("Labels"),
-                                onPressed: () {
-                                  ref.saveLabelSelectionForEdit(
-                                      selectedCategoryLabel);
-                                  Navigator.push(
-                                      context,
-                                      createRouteSharedAxisTransition(
-                                        CategoryListUI(
-                                          mode: CategorySelectMode.modify,
-                                          todoID: widget.todoId,
-                                        ),
-                                      ));
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(right: 16),
-                              child: ActionChip(
-                                avatar: Icon(Icons.circle,
-                                    color: _selectedPriority == Priority.low
-                                        ? ColorScheme.fromSeed(
-                                                seedColor: const Color.fromARGB(
-                                                    1, 223, 217, 255))
-                                            .primary
-                                        : _selectedPriority == Priority.moderate
-                                            ? ColorScheme.fromSeed(
-                                                    seedColor:
-                                                        const Color.fromARGB(
-                                                            1, 223, 217, 255))
-                                                .tertiary
-                                            : ColorScheme.fromSeed(
-                                                    seedColor:
-                                                        const Color.fromARGB(
-                                                            1, 223, 217, 255))
-                                                .error),
-                                label: Text(
-                                    "Priority: ${_selectedPriority.name.toString().capitalize()}"),
-                                onPressed: () => showDialog(
-                                  context: context,
-                                  builder: (context) => Dialog(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(24),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "Priority",
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleLarge,
-                                          ),
-                                          ListView(
-                                            shrinkWrap: true,
-                                            children: [
-                                              RadioListTile(
-                                                value: Priority.low,
-                                                groupValue: _selectedPriority,
-                                                title: const Text("Low"),
-                                                onChanged: (value) {
-                                                  setState(() {
-                                                    _selectedPriority = value!;
-                                                  });
-                                                  ref.updatePriority(
-                                                      widget.todoId, value!);
-                                                  Navigator.of(context).pop();
-                                                },
-                                              ),
-                                              RadioListTile(
-                                                value: Priority.moderate,
-                                                groupValue: _selectedPriority,
-                                                title: const Text("Moderate"),
-                                                onChanged: (value) {
-                                                  setState(() {
-                                                    _selectedPriority = value!;
-                                                  });
-                                                  ref.updatePriority(
-                                                      widget.todoId, value!);
-                                                  Navigator.of(context).pop();
-                                                },
-                                              ),
-                                              RadioListTile(
-                                                value: Priority.high,
-                                                groupValue: _selectedPriority,
-                                                title: const Text("High"),
-                                                onChanged: (value) {
-                                                  setState(() {
-                                                    _selectedPriority = value!;
-                                                  });
-                                                  ref.updatePriority(
-                                                      widget.todoId, value!);
-                                                  Navigator.of(context).pop();
-                                                },
-                                              ),
-                                            ],
-                                          )
-                                        ],
+                                      ListTile(
+                                        leading: const Icon(
+                                            Icons.watch_later_outlined),
+                                        title: Text(DateFormat.EEEE().format(
+                                            DateTime.now()
+                                                .add(const Duration(days: 2)))),
+                                        trailing: const Text("8:00 AM"),
+                                        onTap: () {
+                                          var dayAfterTomorrow = DateTime.now()
+                                              .add(const Duration(days: 2));
+                                          IsarHelper.instance.updateReminder(
+                                              widget.todoId,
+                                              true,
+                                              DateTime(
+                                                  dayAfterTomorrow.year,
+                                                  dayAfterTomorrow.month,
+                                                  dayAfterTomorrow.day,
+                                                  8,
+                                                  0,
+                                                  0,
+                                                  0,
+                                                  0));
+                                          Navigator.of(context).pop();
+                                        },
                                       ),
-                                    ),
+                                      ListTile(
+                                        leading: const Icon(
+                                            Icons.watch_later_outlined),
+                                        title: const Text("Custom"),
+                                        onTap: () async {
+                                          var remindtime =
+                                              await showDateTimePicker(
+                                                  context: context);
+                                          IsarHelper.instance.updateReminder(
+                                              widget.todoId, true, remindtime);
+
+                                          if (context.mounted) {
+                                            Navigator.of(context).pop();
+                                          }
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.clear),
+                                        title: const Text("Clear"),
+                                        onTap: () {
+                                          IsarHelper.instance.updateReminder(
+                                              widget.todoId,
+                                              false,
+                                              DateTime.now());
+
+                                          Navigator.of(context).pop();
+                                        },
+                                        enabled: hasReminder,
+                                      )
+                                    ],
                                   ),
-                                ),
-                              ),
-                            )
-                          ],
+                                )
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            FleatherToolbar.basic(
-                                controller: _fleatherController),
-                            Divider(
-                                height: 1,
-                                thickness: 1,
-                                color: Colors.grey.shade200),
-                            Expanded(
-                              child: FleatherEditor(
-                                controller: _fleatherController,
-                                padding: EdgeInsets.only(
-                                  left: 16,
-                                  right: 16,
-                                  bottom: MediaQuery.of(context).padding.bottom,
-                                ),
-                                onLaunchUrl: _launchUrl,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                );
-              }
-              return const SafeArea(
-                child: Column(
-                  children: [
-                    LinearProgressIndicator(),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: ActionChip(
+                      avatar: selectedLabels.isEmpty
+                          ? const Icon(Icons.label_outline)
+                          : const Icon(Icons.label),
+                      label: const Text("Labels"),
+                      onPressed: () async {
+                        final result = await showModalBottomSheet(
+                            context: context,
+                            builder: (context) =>
+                                LabelEditor(selectedValue: selectedLabels));
+                        if (!mounted) return;
+                        setState(() {
+                          selectedLabels = result ?? [];
+                        });
+                        print(result);
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: ActionChip(
+                      avatar: Icon(Icons.circle,
+                          color: _selectedPriority == Priority.low
+                              ? ColorScheme.fromSeed(
+                                      seedColor: const Color.fromARGB(
+                                          1, 223, 217, 255))
+                                  .primary
+                              : _selectedPriority == Priority.moderate
+                                  ? ColorScheme.fromSeed(
+                                          seedColor: const Color.fromARGB(
+                                              1, 223, 217, 255))
+                                      .tertiary
+                                  : ColorScheme.fromSeed(
+                                          seedColor: const Color.fromARGB(
+                                              1, 223, 217, 255))
+                                      .error),
+                      label: Text(
+                          "Priority: ${_selectedPriority.name.toString().capitalize()}"),
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (context) => Dialog(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Priority",
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                                ListView(
+                                  shrinkWrap: true,
+                                  children: [
+                                    RadioListTile(
+                                      value: Priority.low,
+                                      groupValue: _selectedPriority,
+                                      title: const Text("Low"),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedPriority = value!;
+                                        });
+                                        IsarHelper.instance.updatePriority(
+                                            widget.todoId, value!);
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                    RadioListTile(
+                                      value: Priority.moderate,
+                                      groupValue: _selectedPriority,
+                                      title: const Text("Moderate"),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedPriority = value!;
+                                        });
+                                        IsarHelper.instance.updatePriority(
+                                            widget.todoId, value!);
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                    RadioListTile(
+                                      value: Priority.high,
+                                      groupValue: _selectedPriority,
+                                      title: const Text("High"),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedPriority = value!;
+                                        });
+                                        IsarHelper.instance.updatePriority(
+                                            widget.todoId, value!);
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                  ],
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                children: [
+                  FleatherToolbar.basic(controller: _fleatherController),
+                  Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
+                  Expanded(
+                    child: FleatherEditor(
+                      controller: _fleatherController,
+                      padding: EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        bottom: MediaQuery.of(context).padding.bottom,
+                      ),
+                      onLaunchUrl: _launchUrl,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
   /*
   @override
   Widget build(BuildContext context) {
-    TaskListProvider taskListProvider = context.read<TaskListProvider>();
 
     return PopScope(
       canPop: popPage,
