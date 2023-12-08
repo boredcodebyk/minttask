@@ -6,13 +6,10 @@ import 'package:intl/intl.dart';
 import 'package:minttask/model/db.dart';
 import 'package:minttask/model/db_model.dart';
 import 'package:minttask/pages/ui/labeleditor_ui.dart';
-import 'package:provider/provider.dart';
 
-import 'package:flutter/scheduler.dart' as scd;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/utils.dart';
-import 'ui/category_ui.dart';
 
 Priority _selectedPriority = Priority.low;
 
@@ -70,32 +67,6 @@ class _EditPageState extends State<EditPage> {
       await launchUrl(uri);
     }
   }
-/*
-  void saveTask(TaskListProvider taskListProvider) {
-    List<int> tempCatList = [];
-    tempSelection.forEach((key, value) {
-      if (value) {
-        tempCatList.add(key);
-      }
-    });
-    print(tempSelection);
-    print(tempCatList);
-    taskListProvider.updateTodoTitle(widget.todoId, _titleController.text);
-    taskListProvider.updateTodoDescription(widget.todoId,
-        jsonEncode(_quillController.document.toDelta().toJson()));
-    taskListProvider.markTaskDone(widget.todoId, isDone);
-    taskListProvider.updatePriority(widget.todoId, _selectedPriority);
-    taskListProvider.updateCategoryInTask(
-        widget.todoId,
-        taskListProvider.editLabelSelection.entries
-            .where((element) => element.value)
-            .map((e) => e.key)
-            .toList());
-    taskListProvider.updateReminder(widget.todoId, hasReminder, reminderValue);
-    taskListProvider.editLabelSelection.forEach((key, value) {
-      taskListProvider.editLabelSelection[key] = false;
-    });
-  }*/
 
   @override
   void didChangeDependencies() {
@@ -127,6 +98,7 @@ class _EditPageState extends State<EditPage> {
           isarInstance.updateTitle(
               id: widget.todoId, title: _titleController.text);
           isarInstance.updateLabels(id: widget.todoId, labels: selectedLabels);
+          IsarHelper.instance.markTaskDone(widget.todoId, doneStatus);
         }
       },
       child: Scaffold(
@@ -310,8 +282,9 @@ class _EditPageState extends State<EditPage> {
                 trailing: Checkbox(
                   value: doneStatus,
                   onChanged: (value) async {
-                    IsarHelper.instance
-                        .markTaskDone(widget.todoId, value ?? false);
+                    setState(() {
+                      doneStatus = value ?? false;
+                    });
                   },
                 ),
                 title: TextField(
@@ -340,8 +313,8 @@ class _EditPageState extends State<EditPage> {
                     child: ActionChip(
                       avatar: Icon(hasReminder ? Icons.alarm : Icons.alarm_on),
                       label: Text(hasReminder
-                          ? "No reminder"
-                          : DateFormat("E d, h:mm a").format(reminderValue)),
+                          ? DateFormat("E d, h:mm a").format(reminderValue)
+                          : "No reminder"),
                       onPressed: () => showDialog(
                         context: context,
                         builder: (context) => Dialog(
@@ -397,7 +370,9 @@ class _EditPageState extends State<EditPage> {
                                                           0,
                                                           0,
                                                           0));
-
+                                          setState(() {
+                                            hasReminder = true;
+                                          });
                                           Navigator.of(context).pop();
                                         },
                                       ),
@@ -422,7 +397,9 @@ class _EditPageState extends State<EditPage> {
                                                 0,
                                                 0),
                                           );
-
+                                          setState(() {
+                                            hasReminder = true;
+                                          });
                                           Navigator.of(context).pop();
                                         },
                                       ),
@@ -448,6 +425,9 @@ class _EditPageState extends State<EditPage> {
                                                   0,
                                                   0,
                                                   0));
+                                          setState(() {
+                                            hasReminder = true;
+                                          });
                                           Navigator.of(context).pop();
                                         },
                                       ),
@@ -461,7 +441,9 @@ class _EditPageState extends State<EditPage> {
                                                   context: context);
                                           IsarHelper.instance.updateReminder(
                                               widget.todoId, true, remindtime);
-
+                                          setState(() {
+                                            hasReminder = true;
+                                          });
                                           if (context.mounted) {
                                             Navigator.of(context).pop();
                                           }
@@ -475,7 +457,9 @@ class _EditPageState extends State<EditPage> {
                                               widget.todoId,
                                               false,
                                               DateTime.now());
-
+                                          setState(() {
+                                            hasReminder = false;
+                                          });
                                           Navigator.of(context).pop();
                                         },
                                         enabled: hasReminder,
@@ -499,9 +483,12 @@ class _EditPageState extends State<EditPage> {
                       label: const Text("Labels"),
                       onPressed: () async {
                         final result = await showModalBottomSheet(
+                            showDragHandle: true,
                             context: context,
-                            builder: (context) =>
-                                LabelEditor(selectedValue: selectedLabels));
+                            builder: (context) => LabelEditor(
+                                  selectedValue: selectedLabels,
+                                  mode: CategorySelectMode.modify,
+                                ));
                         if (!mounted) return;
                         setState(() {
                           selectedLabels = result ?? [];

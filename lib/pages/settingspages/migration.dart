@@ -37,7 +37,7 @@ class _MigrationWidgetState extends State<MigrationWidget> {
     return Scaffold(
       body: Column(
         children: [
-          Text("Migrating data from old SQFlite database to Isar"),
+          const Text("Migrating data from old SQFlite database to Isar"),
           for (var e in _todoList) ...[
             Text(e.toString()),
           ]

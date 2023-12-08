@@ -1,10 +1,10 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:minttask/model/db.dart';
 import 'package:minttask/utils/enum_utils.dart';
 import 'package:path_provider/path_provider.dart';
 
+/*
 class TaskListProvider with ChangeNotifier {
   TaskListProvider() {
     init();
@@ -593,6 +593,7 @@ class TaskListProvider with ChangeNotifier {
   }
 }
 
+*/
 class IsarHelper {
   static final IsarHelper instance = IsarHelper._();
   IsarHelper._();
@@ -656,12 +657,14 @@ class IsarHelper {
       await AwesomeNotifications().createNotification(
         schedule: NotificationCalendar.fromDate(date: notifyTime!),
         content: NotificationContent(
-          id: tmpid,
-          channelKey: 'task_reminder',
-          actionType: ActionType.Default,
-          title: title,
-          category: NotificationCategory.Reminder,
-        ),
+            id: tmpid,
+            channelKey: 'task_reminder',
+            actionType: ActionType.Default,
+            title: title,
+            category: NotificationCategory.Reminder,
+            payload: {
+              "id": tmpid.toString(),
+            }),
         actionButtons: [
           NotificationActionButton(key: "done_$tmpid", label: "Done"),
           NotificationActionButton(key: "snooze_$tmpid", label: "Snooze"),
@@ -816,12 +819,14 @@ class IsarHelper {
       await AwesomeNotifications().createNotification(
         schedule: NotificationCalendar.fromDate(date: reminderValue!),
         content: NotificationContent(
-          id: updateTask.notifyID!,
-          channelKey: 'task_reminder',
-          actionType: ActionType.Default,
-          title: updateTask.title,
-          category: NotificationCategory.Reminder,
-        ),
+            id: updateTask.notifyID!,
+            channelKey: 'task_reminder',
+            actionType: ActionType.Default,
+            title: updateTask.title,
+            category: NotificationCategory.Reminder,
+            payload: {
+              "id": id.toString(),
+            }),
         actionButtons: [
           NotificationActionButton(
               key: "done_${updateTask.notifyID!}", label: "Done"),
@@ -880,6 +885,81 @@ class IsarHelper {
       await isarInstance.taskDatas.put(oldItem!);
       await isarInstance.taskDatas.put(newItem!);
     });
+  }
+
+  void deleteCategory(int id) async {
+    final isarInstance = await instance.isar;
+    List<int> blanklist = [];
+
+    var taskListTemp = await isarInstance.taskDatas.where().findAll();
+    for (var element in taskListTemp) {
+      for (var e in element.labels!) {
+        blanklist.add(e);
+      }
+      if (blanklist.contains(id)) {
+        blanklist.removeWhere((e) => e == id);
+        var getID = element.id;
+        var updateItem = await isarInstance.taskDatas.get(getID!);
+        updateItem?.labels = blanklist;
+        await isarInstance.writeTxn(() async {
+          await isarInstance.taskDatas.put(updateItem!);
+        });
+      }
+    }
+
+    await isarInstance.writeTxn(() async {
+      await isarInstance.categoryLists.delete(id);
+    });
+  }
+
+  void updateLabelTitle({required int id, required String title}) async {
+    final isarInstance = await instance.isar;
+    final updateCategory = await isarInstance.categoryLists.get(id);
+    updateCategory?.name = title;
+    await isarInstance.writeTxn(() async {
+      isarInstance.categoryLists.put(updateCategory!);
+    });
+  }
+
+  void restoreFromJson(
+      title,
+      description,
+      doneStatus,
+      dateCreated,
+      dateModified,
+      labels,
+      archive,
+      trash,
+      doNotify,
+      notifyID,
+      notifyTime,
+      priority,
+      pinned) async {
+    final isarInstance = await instance.isar;
+    final newTask = TaskData()
+      ..title = title
+      ..description = description
+      ..doneStatus = doneStatus
+      ..dateCreated = dateCreated
+      ..dateModified = dateModified
+      ..labels = labels.cast<int>()
+      ..archive = archive
+      ..trash = trash
+      ..doNotify = doNotify
+      ..notifyID = notifyID
+      ..notifyTime = notifyTime
+      ..priority = priority == "low"
+          ? Priority.low
+          : priority == "moderate"
+              ? Priority.moderate
+              : Priority.high
+      ..pinned = pinned;
+    var tmpid = await isarInstance
+        .writeTxn(() async => await isarInstance.taskDatas.put(newTask));
+    final update = await isarInstance.taskDatas.get(tmpid);
+    update?.orderID = tmpid;
+    await isarInstance
+        .writeTxn(() async => await isarInstance.taskDatas.put(update!));
   }
 
   Stream<List<CategoryList>> listCategory() async* {

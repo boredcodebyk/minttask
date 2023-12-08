@@ -5,7 +5,6 @@ import 'package:isar/isar.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:minttask/model/db.dart';
 import 'package:minttask/model/db_model.dart';
-import 'package:provider/provider.dart';
 import './pages.dart';
 import 'ui/listbuilder_ui.dart';
 

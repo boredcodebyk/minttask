@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:minttask/model/db.dart';
-import 'package:provider/provider.dart';
 
 import '../model/db_model.dart';
 

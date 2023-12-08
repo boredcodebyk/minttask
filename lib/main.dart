@@ -3,17 +3,15 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
-import 'package:minttask/pages/ui/category_ui.dart';
+
 import 'package:provider/provider.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:quick_settings/quick_settings.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
 import './pages/pages.dart';
-import 'pages/setup.dart';
 import 'model/notification_model.dart';
 import 'model/settings_model.dart';
-import 'model/db_model.dart';
 import 'utils/utils.dart';
 
 Future<void> main() async {
@@ -127,13 +125,7 @@ class _MyAppState extends State<MyApp> {
             useMaterial3: true,
           ),
           themeMode: settings.themeMode,
-          home: settings.firstLaunch
-              ? const SetupPage()
-              : receivedAction?.payload != null
-                  ? NotifyAction(
-                      receivedAction: receivedAction,
-                    )
-                  : const HomePage(),
+          home: settings.firstLaunch ? const SetupPage() : const HomePage(),
         );
       },
     );

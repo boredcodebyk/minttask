@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:minttask/model/db.dart';
 import 'package:minttask/model/db_model.dart';
-import 'package:minttask/pages/ui/category_ui.dart';
+
 import 'package:minttask/pages/ui/labeleditor_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -247,9 +247,13 @@ class _AddTaskBoxState extends State<AddTaskBox> {
                     label: const Text("Labels"),
                     onPressed: () async {
                       final result = await showModalBottomSheet(
+                          isDismissible: false,
+                          showDragHandle: true,
                           context: context,
-                          builder: (context) =>
-                              LabelEditor(selectedValue: selectedLabels));
+                          builder: (context) => LabelEditor(
+                                selectedValue: selectedLabels,
+                                mode: CategorySelectMode.modify,
+                              ));
                       if (!mounted) return;
                       setState(() {
                         selectedLabels = result ?? [];

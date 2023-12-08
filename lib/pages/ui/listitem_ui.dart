@@ -261,6 +261,41 @@ class ListViewCard extends ListTile {
                     },
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: ListTile(
+                    tileColor: Color(CorePalette.of(
+                            Theme.of(context).colorScheme.primary.value)
+                        .neutral
+                        .get(Theme.of(context).colorScheme.brightness ==
+                                Brightness.light
+                            ? 98
+                            : 17)),
+                    leading: const Icon(Icons.delete_forever_outlined),
+                    title: const Text("Delete forever"),
+                    onTap: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          content: const Text('This task will delete forever'),
+                          actions: [
+                            TextButton(
+                                child: const Text("Proceed"),
+                                onPressed: () {
+                                  Navigator.pop(context, true);
+                                  isarInstance.deleteTask(id);
+                                }),
+                            TextButton(
+                                child: const Text("Cancel"),
+                                onPressed: () => Navigator.pop(context, false)),
+                          ],
+                        ),
+                      );
+
+                      if (context.mounted) Navigator.of(context).pop();
+                    },
+                  ),
+                ),
               ] else ...[
                 Padding(
                   padding: const EdgeInsets.only(bottom: 2),
@@ -356,8 +391,8 @@ class ListViewCard extends ListTile {
                               Brightness.light
                           ? 98
                           : 17)),
-                  leading: const Icon(Icons.more_horiz),
-                  title: const Text("More"),
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text("Overview"),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.push(

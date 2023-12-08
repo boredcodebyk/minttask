@@ -5,7 +5,7 @@ import '../utils/utils.dart';
 class TodoListModel extends ChangeNotifier {
   FilterList _filter = FilterList.desc;
   SortList _sort = SortList.id;
-  bool _showCompleted = true;
+  bool _showCompletedTask = false;
   bool _useCategorySort = false;
   bool _detailedView = true;
 
@@ -25,10 +25,10 @@ class TodoListModel extends ChangeNotifier {
     save();
   }
 
-  bool get showCompleted => _showCompleted;
-  set showCompleted(bool value) {
-    if (_showCompleted == value) return;
-    _showCompleted = value;
+  bool get showCompletedTask => _showCompletedTask;
+  set showCompletedTask(bool value) {
+    if (_showCompletedTask == value) return;
+    _showCompletedTask = value;
     notifyListeners();
     save();
   }
@@ -53,7 +53,7 @@ class TodoListModel extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     prefs.setString('filter', _filter.toString());
     prefs.setString('sort', _sort.toString());
-    prefs.setBool('showCompleted', _showCompleted);
+    prefs.setBool('showCompletedTask', _showCompletedTask);
     prefs.setBool('useCategorySort', _useCategorySort);
     prefs.setBool('detailedView', _detailedView);
   }
@@ -66,7 +66,7 @@ class TodoListModel extends ChangeNotifier {
     _sort = SortList.values.firstWhere(
         (e) => e.toString() == prefs.getString('sort'),
         orElse: () => SortList.id);
-    _showCompleted = prefs.getBool('showCompleted') ?? true;
+    _showCompletedTask = prefs.getBool('showCompletedTask') ?? false;
     _useCategorySort = prefs.getBool('useCategorySort') ?? false;
     _detailedView = prefs.getBool('detailedView') ?? true;
   }
@@ -80,7 +80,6 @@ class SettingsModel extends ChangeNotifier {
   bool _useCustomColor = false;
   int _customColor = 16777215;
   bool _firstLaunch = true;
-  bool _showCompletedTask = false;
 
   bool get isSystemColor => _isSystemColor;
   set isSystemColor(bool value) {
@@ -138,14 +137,6 @@ class SettingsModel extends ChangeNotifier {
     save();
   }
 
-  bool get showCompletedTask => _showCompletedTask;
-  set showCompletedTask(bool value) {
-    if (_showCompletedTask == value) return;
-    _showCompletedTask = value;
-    notifyListeners();
-    save();
-  }
-
   Future<void> save() async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setBool('isSystemColor', _isSystemColor);
@@ -155,7 +146,6 @@ class SettingsModel extends ChangeNotifier {
     prefs.setBool('useCustomColor', _useCustomColor);
     prefs.setInt('customColor', _customColor);
     prefs.setBool('firstLaunch', _firstLaunch);
-    prefs.setBool('showCompletedTask', _showCompletedTask);
   }
 
   Future<void> load() async {
@@ -174,7 +164,6 @@ class SettingsModel extends ChangeNotifier {
     _useCustomColor = prefs.getBool('useCustomColor') ?? false;
     _customColor = prefs.getInt('customColor') ?? 16777215;
     _firstLaunch = prefs.getBool('firstLaunch') ?? true;
-    _showCompletedTask = prefs.getBool('showCompletedTask') ?? false;
     notifyListeners();
   }
 }

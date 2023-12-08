@@ -1,7 +1,9 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:minttask/pages/archive.dart';
+import 'package:minttask/pages/ui/snooze_ui.dart';
 import 'package:provider/provider.dart';
 import '../model/db_model.dart';
 import '../model/settings_model.dart';
@@ -31,14 +33,16 @@ class _HomePageState extends State<HomePage> {
 
   void deleteafter30d() async {
     var today = DateTime.now();
-    final list = context.read<TaskListProvider>();
-    final trashList = list.trashList;
-    if (trashList.isNotEmpty) {
-      for (var element in trashList) {
+    final isarInstance = IsarHelper.instance;
+
+    final trashList = await isarInstance.listTrash().toList();
+
+    if (trashList.first.isNotEmpty) {
+      for (var element in trashList.first) {
         final difference = today.difference(element.dateModified!).inDays;
         print(difference);
         if (difference > 30) {
-          list.deleteTask(element.id!);
+          isarInstance.deleteTask(element.id!);
         }
       }
     }
@@ -64,8 +68,15 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     TodoListModel tdl = Provider.of<TodoListModel>(context);
     if (notificationbuttonkeypressed.split("_").first == "done") {
-      Provider.of<TaskListProvider>(context, listen: false).markTaskDone(
+      IsarHelper.instance.markTaskDone(
           int.parse(notificationbuttonkeypressed.split("_").last), true);
+    } else if (notificationbuttonkeypressed.split("_").first == "snooze") {
+      SchedulerBinding.instance.addPostFrameCallback((timeStamp) async {
+        await showDialog(
+            context: context,
+            builder: (context) =>
+                SnoozeUI(receivedActionData: widget.receivedAction!));
+      });
     }
     return Scaffold(
       key: scaffoldKey,
@@ -159,9 +170,9 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () async => await showDialog(
                     context: context,
                     builder: (context) => Dialog(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                      child: ListView(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -226,7 +237,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           Padding(
                             padding: const EdgeInsets.all(16.0),
-                            child: TextButton(
+                            child: FilledButton(
                                 onPressed: () => Navigator.of(context).pop(),
                                 child: const Text("Done")),
                           )
@@ -235,26 +246,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-              PopupMenuButton(
-                onSelected: (value) {
-                  switch (value) {
-                    case 3:
-                      tdl.showCompleted = !tdl.showCompleted;
-                  }
-                },
-                itemBuilder: (context) => <PopupMenuEntry>[
-                  const PopupMenuItem(
-                      height: 48, value: 1, child: Text("Clear Completed")),
-                  const PopupMenuItem(
-                      height: 48, value: 2, child: Text("Reorder")),
-                  const PopupMenuDivider(),
-                  CheckedPopupMenuItem(
-                    checked: tdl.showCompleted,
-                    value: 3,
-                    child: const Text("Show completed"),
-                  ),
-                ],
-              )
             ],
           ),
           SliverToBoxAdapter(

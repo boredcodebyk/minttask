@@ -24,13 +24,13 @@ class _SwipeActionPageState extends State<SwipeActionPage> {
     return Scaffold(
       body: CustomScrollView(
         slivers: <Widget>[
-          SliverAppBar.large(
+          const SliverAppBar.large(
             title: Text("Swipe actions"),
           ),
           SliverToBoxAdapter(
             child: Column(children: [
               ListTile(
-                title: Text("Left swipe"),
+                title: const Text("Left swipe"),
                 subtitle: Text(settings.leftSwipeAction
                     .toString()
                     .split(".")
@@ -42,7 +42,7 @@ class _SwipeActionPageState extends State<SwipeActionPage> {
                       return Dialog(
                         child: ListView(
                           shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
+                          physics: const NeverScrollableScrollPhysics(),
                           children: [
                             RadioListTile(
                               title: const Text("Trash"),
@@ -71,7 +71,7 @@ class _SwipeActionPageState extends State<SwipeActionPage> {
                     }),
               ),
               ListTile(
-                title: Text("Right swipe"),
+                title: const Text("Right swipe"),
                 subtitle: Text(settings.rightSwipeAction
                     .toString()
                     .split(".")
@@ -83,7 +83,7 @@ class _SwipeActionPageState extends State<SwipeActionPage> {
                       return Dialog(
                         child: ListView(
                           shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
+                          physics: const NeverScrollableScrollPhysics(),
                           children: [
                             RadioListTile(
                               title: const Text("Trash"),

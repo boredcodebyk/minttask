@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:marquee/marquee.dart';
-import 'package:minttask/model/db.dart';
 import 'package:minttask/pages/reorder_list.dart';
-import 'package:minttask/pages/ui/category_ui.dart';
+
+import 'package:minttask/pages/ui/labeleditor_ui.dart';
 import 'package:minttask/utils/enum_utils.dart';
 import 'package:minttask/utils/transition.dart';
 import 'package:provider/provider.dart';
@@ -21,10 +20,11 @@ class MainListView extends StatefulWidget {
 }
 
 class _MainListViewState extends State<MainListView> {
+  List<int> selectedLabels = [];
+  final isarInstance = IsarHelper.instance;
   @override
   Widget build(BuildContext context) {
     TodoListModel tdl = Provider.of<TodoListModel>(context);
-    SettingsModel settingsModel = Provider.of<SettingsModel>(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -41,15 +41,19 @@ class _MainListViewState extends State<MainListView> {
                     avatar: tdl.useCategorySort
                         ? const Icon(Icons.label)
                         : const Icon(Icons.label_outline),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        createRouteSharedAxisTransition(
-                          const CategoryListUI(
-                            mode: CategorySelectMode.sort,
-                          ),
+                    onPressed: () async {
+                      final result = await showModalBottomSheet(
+                        showDragHandle: true,
+                        context: context,
+                        builder: (context) => LabelEditor(
+                          mode: CategorySelectMode.sort,
+                          selectedValue: selectedLabels,
                         ),
                       );
+                      if (!mounted) return;
+                      setState(() {
+                        selectedLabels = result ?? [];
+                      });
                     },
                   ),
                 ),
@@ -57,8 +61,8 @@ class _MainListViewState extends State<MainListView> {
                   padding: const EdgeInsets.only(right: 16),
                   child: FilterChip(
                     label: const Text("Show completed"),
-                    selected: settingsModel.showCompletedTask,
-                    onSelected: (val) => settingsModel.showCompletedTask = val,
+                    selected: tdl.showCompletedTask,
+                    onSelected: (val) => tdl.showCompletedTask = val,
                   ),
                 ),
                 Padding(
@@ -76,20 +80,38 @@ class _MainListViewState extends State<MainListView> {
             ),
           ),
         ),
-        ListBuilderView(sort: tdl.sort, filter: tdl.filter),
+        if (tdl.useCategorySort) ...[
+          if (selectedLabels.isEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text("Select category label to filter..."),
+            ),
+          ] else ...[
+            listBuilderView(
+              context: context,
+              sort: tdl.sort,
+              filter: tdl.filter,
+              selectedLabels: selectedLabels,
+            ),
+          ],
+        ] else ...[
+          listBuilderView(
+            context: context,
+            sort: tdl.sort,
+            filter: tdl.filter,
+            selectedLabels: const [],
+          ),
+        ],
       ],
     );
   }
-}
 
-class ListBuilderView extends StatelessWidget {
-  ListBuilderView({super.key, this.sort, this.filter});
-  final SortList? sort;
-  final FilterList? filter;
-  final isarInstance = IsarHelper.instance;
-  @override
-  Widget build(BuildContext context) {
-    SettingsModel settingsModel = Provider.of<SettingsModel>(context);
+  Widget listBuilderView(
+      {required BuildContext context,
+      SortList? sort,
+      FilterList? filter,
+      List<int>? selectedLabels}) {
+    TodoListModel tdl = Provider.of<TodoListModel>(context);
     return StreamBuilder(
       stream: isarInstance.listTasks(sort: sort, filter: filter),
       builder: (context, snapshot) {
@@ -99,192 +121,486 @@ class ListBuilderView extends StatelessWidget {
             var completedTask = listTask
                 .where((element) => element.doneStatus == true)
                 .toList();
-            if (settingsModel.showCompletedTask) {
-              var taskListPinned =
-                  listTask.where((element) => element.pinned == true).toList();
-              var taskListUnpinned =
-                  listTask.where((element) => element.pinned == false).toList();
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  if (taskListPinned.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text("Pinned - ${taskListPinned.length}"),
-                    ),
-                    ListBuilder(
-                      itemCount: taskListPinned.length,
-                      itemBuilder: (context, index) {
-                        var task = taskListPinned[index];
-
-                        return _dismissableListBuilder(
-                          context: context,
-                          listItemView: ListViewCard(
-                            id: task.id!,
-                            taskTitle: task.title!,
-                            description: task.description!,
-                            doneStatus: task.doneStatus!,
-                            selectedPriority: task.priority!,
-                            archive: task.archive!,
-                            trash: task.trash!,
-                            pinned: task.pinned!,
-                            subtext: task.doNotify ?? false
-                                ? Text(
-                                    "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
-                                : const Text(""),
-                          ),
-                          taskid: task.id!,
-                          pin: task.pinned!,
-                        );
-                      },
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text("Others - ${taskListUnpinned.length}"),
-                    ),
-                  ],
-                  ListBuilder(
-                    itemCount: taskListUnpinned.length,
-                    itemBuilder: (context, index) {
-                      var task = taskListUnpinned[index];
-
-                      return _dismissableListBuilder(
-                        context: context,
-                        listItemView: ListViewCard(
-                          id: task.id!,
-                          taskTitle: task.title!,
-                          description: task.description!,
-                          doneStatus: task.doneStatus!,
-                          selectedPriority: task.priority!,
-                          archive: task.archive!,
-                          trash: task.trash!,
-                          pinned: task.pinned!,
-                          subtext: task.doNotify ?? false
-                              ? Text(
-                                  "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
-                              : const Text(""),
-                        ),
-                        taskid: task.id!,
-                        pin: task.pinned!,
-                      );
-                    },
-                  ),
-                ],
-              );
-            } else {
-              var taskListPinned =
-                  listTask.where((element) => element.pinned == true).toList();
-              var taskListUnpinned = listTask
-                  .where((element) =>
-                      element.pinned == false && element.doneStatus == false)
-                  .toList();
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  if (taskListPinned.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text("Pinned - ${taskListPinned.length}"),
-                    ),
-                    ListBuilder(
-                      itemCount: taskListPinned.length,
-                      itemBuilder: (context, index) {
-                        var task = taskListPinned[index];
-
-                        return _dismissableListBuilder(
-                          context: context,
-                          listItemView: ListViewCard(
-                            id: task.id!,
-                            taskTitle: task.title!,
-                            description: task.description!,
-                            doneStatus: task.doneStatus!,
-                            selectedPriority: task.priority!,
-                            archive: task.archive!,
-                            trash: task.trash!,
-                            pinned: task.pinned!,
-                            subtext: task.doNotify ?? false
-                                ? Text(
-                                    "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
-                                : const Text(""),
-                          ),
-                          taskid: task.id!,
-                          pin: task.pinned!,
-                        );
-                      },
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text("Others - ${taskListUnpinned.length}"),
-                    ),
-                  ],
-                  ListBuilder(
-                    itemCount: taskListUnpinned.length,
-                    itemBuilder: (context, index) {
-                      var task = taskListUnpinned[index];
-
-                      return _dismissableListBuilder(
-                        context: context,
-                        listItemView: ListViewCard(
-                          id: task.id!,
-                          taskTitle: task.title!,
-                          description: task.description!,
-                          doneStatus: task.doneStatus!,
-                          selectedPriority: task.priority!,
-                          archive: task.archive!,
-                          trash: task.trash!,
-                          pinned: task.pinned!,
-                          subtext: task.doNotify ?? false
-                              ? Text(
-                                  "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
-                              : const Text(""),
-                        ),
-                        taskid: task.id!,
-                        pin: task.pinned!,
-                      );
-                    },
-                  ),
-                  if (completedTask.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16.0),
-                      child: ExpansionTile(
-                        title: Text("Completed - ${completedTask.length}"),
+            var taskListPinned =
+                listTask.where((element) => element.pinned == true).toList();
+            var taskListUnpinned =
+                listTask.where((element) => element.pinned == false).toList();
+            if (tdl.useCategorySort) {
+              return StreamBuilder(
+                stream: isarInstance.listCategory(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    var templistLabels = snapshot.data;
+                    var listLabels = templistLabels!;
+                    return DefaultTabController(
+                      initialIndex: 0,
+                      length: selectedLabels!.length,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16.0),
-                            child: ListBuilder(
-                              itemCount: completedTask.length,
-                              itemBuilder: (context, index) {
-                                var task = completedTask[index];
+                          TabBar(
+                            tabs: [
+                              for (var e in selectedLabels) ...[
+                                Tab(
+                                  child: Text(listLabels
+                                      .where((element) => element.id == e)
+                                      .toList()
+                                      .first
+                                      .name!),
+                                ),
+                              ],
+                            ],
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width,
+                            height: MediaQuery.of(context).size.height,
+                            child: TabBarView(
+                              children: [
+                                if (tdl.showCompletedTask) ...[
+                                  for (var e in selectedLabels) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 16.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        children: [
+                                          if (taskListPinned
+                                              .where((element) =>
+                                                  element.labels!.contains(e))
+                                              .toList()
+                                              .isNotEmpty) ...[
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(16.0),
+                                              child: Text(
+                                                  "Pinned - ${taskListPinned.where((element) => element.labels!.contains(e)).toList().length}"),
+                                            ),
+                                            ListBuilder(
+                                              itemCount: taskListPinned
+                                                  .where((element) => element
+                                                      .labels!
+                                                      .contains(e))
+                                                  .toList()
+                                                  .length,
+                                              itemBuilder: (context, index) {
+                                                var task = taskListPinned
+                                                    .where((element) => element
+                                                        .labels!
+                                                        .contains(e))
+                                                    .toList()[index];
 
-                                return _dismissableListBuilder(
-                                  context: context,
-                                  listItemView: ListViewCard(
-                                    id: task.id!,
-                                    taskTitle: task.title!,
-                                    description: task.description!,
-                                    doneStatus: task.doneStatus!,
-                                    selectedPriority: task.priority!,
-                                    archive: task.archive!,
-                                    trash: task.trash!,
-                                    pinned: task.pinned!,
-                                    subtext: task.doNotify ?? false
-                                        ? Text(
-                                            "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
-                                        : const Text(""),
-                                  ),
-                                  taskid: task.id!,
-                                  pin: task.pinned!,
-                                );
-                              },
+                                                return ListViewCard(
+                                                  id: task.id!,
+                                                  taskTitle: task.title!,
+                                                  description:
+                                                      task.description!,
+                                                  doneStatus: task.doneStatus!,
+                                                  selectedPriority:
+                                                      task.priority!,
+                                                  archive: task.archive!,
+                                                  trash: task.trash!,
+                                                  pinned: task.pinned!,
+                                                  subtext: task.doNotify ??
+                                                          false
+                                                      ? Text(
+                                                          "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
+                                                      : const Text(""),
+                                                );
+                                              },
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(16.0),
+                                              child: Text(
+                                                  "Others - ${taskListUnpinned.where((element) => element.labels!.contains(e)).toList().length}"),
+                                            ),
+                                          ],
+                                          ListBuilder(
+                                            itemCount: taskListUnpinned
+                                                .where((element) =>
+                                                    element.labels!.contains(e))
+                                                .toList()
+                                                .length,
+                                            itemBuilder: (context, index) {
+                                              var task = taskListUnpinned
+                                                  .where((element) => element
+                                                      .labels!
+                                                      .contains(e))
+                                                  .toList()[index];
+
+                                              return ListViewCard(
+                                                id: task.id!,
+                                                taskTitle: task.title!,
+                                                description: task.description!,
+                                                doneStatus: task.doneStatus!,
+                                                selectedPriority:
+                                                    task.priority!,
+                                                archive: task.archive!,
+                                                trash: task.trash!,
+                                                pinned: task.pinned!,
+                                                subtext: task.doNotify ?? false
+                                                    ? Text(
+                                                        "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
+                                                    : const Text(""),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ] else ...[
+                                  for (var e in selectedLabels) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 16.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (taskListPinned
+                                              .where((element) =>
+                                                  element.labels!.contains(e))
+                                              .toList()
+                                              .isNotEmpty) ...[
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(16.0),
+                                              child: Text(
+                                                  "Pinned - ${taskListPinned.where((element) => element.labels!.contains(e)).toList().length}"),
+                                            ),
+                                            ListBuilder(
+                                              itemCount: taskListPinned
+                                                  .where((element) => element
+                                                      .labels!
+                                                      .contains(e))
+                                                  .toList()
+                                                  .length,
+                                              itemBuilder: (context, index) {
+                                                var task = taskListPinned
+                                                    .where((element) => element
+                                                        .labels!
+                                                        .contains(e))
+                                                    .toList()[index];
+
+                                                return ListViewCard(
+                                                  id: task.id!,
+                                                  taskTitle: task.title!,
+                                                  description:
+                                                      task.description!,
+                                                  doneStatus: task.doneStatus!,
+                                                  selectedPriority:
+                                                      task.priority!,
+                                                  archive: task.archive!,
+                                                  trash: task.trash!,
+                                                  pinned: task.pinned!,
+                                                  subtext: task.doNotify ??
+                                                          false
+                                                      ? Text(
+                                                          "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
+                                                      : const Text(""),
+                                                );
+                                              },
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.all(16.0),
+                                              child: Text(
+                                                  "Others - ${taskListUnpinned.where((element) => element.labels!.contains(e)).toList().length}"),
+                                            ),
+                                          ],
+                                          ListBuilder(
+                                            itemCount: taskListUnpinned
+                                                .where((element) =>
+                                                    element.labels!.contains(e))
+                                                .toList()
+                                                .length,
+                                            itemBuilder: (context, index) {
+                                              var task = taskListUnpinned
+                                                  .where((element) => element
+                                                      .labels!
+                                                      .contains(e))
+                                                  .toList()[index];
+
+                                              return ListViewCard(
+                                                id: task.id!,
+                                                taskTitle: task.title!,
+                                                description: task.description!,
+                                                doneStatus: task.doneStatus!,
+                                                selectedPriority:
+                                                    task.priority!,
+                                                archive: task.archive!,
+                                                trash: task.trash!,
+                                                pinned: task.pinned!,
+                                                subtext: task.doNotify ?? false
+                                                    ? Text(
+                                                        "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
+                                                    : const Text(""),
+                                              );
+                                            },
+                                          ),
+                                          if (completedTask
+                                              .where((element) =>
+                                                  element.labels!.contains(e))
+                                              .toList()
+                                              .isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 16.0),
+                                              child: ExpansionTile(
+                                                title: Text(
+                                                    "Completed - ${completedTask.where((element) => element.labels!.contains(e)).toList().length}"),
+                                                children: [
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            bottom: 16.0),
+                                                    child: ListBuilder(
+                                                      itemCount: completedTask
+                                                          .where((element) =>
+                                                              element.labels!
+                                                                  .contains(e))
+                                                          .toList()
+                                                          .length,
+                                                      itemBuilder:
+                                                          (context, index) {
+                                                        var task = completedTask
+                                                            .where((element) =>
+                                                                element.labels!
+                                                                    .contains(
+                                                                        e))
+                                                            .toList()[index];
+
+                                                        return ListViewCard(
+                                                          id: task.id!,
+                                                          taskTitle:
+                                                              task.title!,
+                                                          description:
+                                                              task.description!,
+                                                          doneStatus:
+                                                              task.doneStatus!,
+                                                          selectedPriority:
+                                                              task.priority!,
+                                                          archive:
+                                                              task.archive!,
+                                                          trash: task.trash!,
+                                                          pinned: task.pinned!,
+                                                          subtext: task
+                                                                      .doNotify ??
+                                                                  false
+                                                              ? Text(
+                                                                  "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
+                                                              : const Text(""),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ]
+                                ],
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                ],
+                    );
+                  }
+
+                  return const Text("null");
+                },
               );
+            } else {
+              if (tdl.showCompletedTask) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    if (taskListPinned.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text("Pinned - ${taskListPinned.length}"),
+                      ),
+                      ListBuilder(
+                        itemCount: taskListPinned.length,
+                        itemBuilder: (context, index) {
+                          var task = taskListPinned[index];
+
+                          return _dismissableListBuilder(
+                            context: context,
+                            listItemView: ListViewCard(
+                              id: task.id!,
+                              taskTitle: task.title!,
+                              description: task.description!,
+                              doneStatus: task.doneStatus!,
+                              selectedPriority: task.priority!,
+                              archive: task.archive!,
+                              trash: task.trash!,
+                              pinned: task.pinned!,
+                              subtext: task.doNotify ?? false
+                                  ? Text(
+                                      "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
+                                  : const Text(""),
+                            ),
+                            taskid: task.id!,
+                            pin: task.pinned!,
+                          );
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text("Others - ${taskListUnpinned.length}"),
+                      ),
+                    ],
+                    ListBuilder(
+                      itemCount: taskListUnpinned.length,
+                      itemBuilder: (context, index) {
+                        var task = taskListUnpinned[index];
+
+                        return _dismissableListBuilder(
+                          context: context,
+                          listItemView: ListViewCard(
+                            id: task.id!,
+                            taskTitle: task.title!,
+                            description: task.description!,
+                            doneStatus: task.doneStatus!,
+                            selectedPriority: task.priority!,
+                            archive: task.archive!,
+                            trash: task.trash!,
+                            pinned: task.pinned!,
+                            subtext: task.doNotify ?? false
+                                ? Text(
+                                    "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
+                                : const Text(""),
+                          ),
+                          taskid: task.id!,
+                          pin: task.pinned!,
+                        );
+                      },
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    if (taskListPinned.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text("Pinned - ${taskListPinned.length}"),
+                      ),
+                      ListBuilder(
+                        itemCount: taskListPinned.length,
+                        itemBuilder: (context, index) {
+                          var task = taskListPinned[index];
+
+                          return _dismissableListBuilder(
+                            context: context,
+                            listItemView: ListViewCard(
+                              id: task.id!,
+                              taskTitle: task.title!,
+                              description: task.description!,
+                              doneStatus: task.doneStatus!,
+                              selectedPriority: task.priority!,
+                              archive: task.archive!,
+                              trash: task.trash!,
+                              pinned: task.pinned!,
+                              subtext: task.doNotify ?? false
+                                  ? Text(
+                                      "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
+                                  : const Text(""),
+                            ),
+                            taskid: task.id!,
+                            pin: task.pinned!,
+                          );
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text("Others - ${taskListUnpinned.length}"),
+                      ),
+                    ],
+                    ListBuilder(
+                      itemCount: taskListUnpinned
+                          .where((element) => element.doneStatus == false)
+                          .toList()
+                          .length,
+                      itemBuilder: (context, index) {
+                        var task = taskListUnpinned
+                            .where((element) => element.doneStatus == false)
+                            .toList()[index];
+
+                        return _dismissableListBuilder(
+                          context: context,
+                          listItemView: ListViewCard(
+                            id: task.id!,
+                            taskTitle: task.title!,
+                            description: task.description!,
+                            doneStatus: task.doneStatus!,
+                            selectedPriority: task.priority!,
+                            archive: task.archive!,
+                            trash: task.trash!,
+                            pinned: task.pinned!,
+                            subtext: task.doNotify ?? false
+                                ? Text(
+                                    "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
+                                : const Text(""),
+                          ),
+                          taskid: task.id!,
+                          pin: task.pinned!,
+                        );
+                      },
+                    ),
+                    if (completedTask.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16.0),
+                        child: ExpansionTile(
+                          title: Text("Completed - ${completedTask.length}"),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: ListBuilder(
+                                itemCount: completedTask.length,
+                                itemBuilder: (context, index) {
+                                  var task = completedTask[index];
+
+                                  return _dismissableListBuilder(
+                                    context: context,
+                                    listItemView: ListViewCard(
+                                      id: task.id!,
+                                      taskTitle: task.title!,
+                                      description: task.description!,
+                                      doneStatus: task.doneStatus!,
+                                      selectedPriority: task.priority!,
+                                      archive: task.archive!,
+                                      trash: task.trash!,
+                                      pinned: task.pinned!,
+                                      subtext: task.doNotify ?? false
+                                          ? Text(
+                                              "Due on ${DateFormat("hh:mm EEE, M/d/y").format(task.notifyTime!)} ")
+                                          : const Text(""),
+                                    ),
+                                    taskid: task.id!,
+                                    pin: task.pinned!,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                );
+              }
             }
           } else {
             return const Padding(
@@ -292,12 +608,11 @@ class ListBuilderView extends StatelessWidget {
               child: Text("Empty"),
             );
           }
-        } else {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text("Empty"),
-          );
         }
+        return const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text("Empty"),
+        );
       },
     );
   }
@@ -650,6 +965,7 @@ class ListBuilderView extends StatelessWidget {
     );
   }
 }
+
 /***************
 
 class AllListView extends StatefulWidget {

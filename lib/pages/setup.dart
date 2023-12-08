@@ -59,10 +59,6 @@ class _SetupPageState extends State<SetupPage> {
   @override
   void initState() {
     super.initState();
-    setState(() {
-      filter_col["sortby"] = "id";
-      filter_col["filter"] = "asc";
-    });
 
     _listTodos("id", "asc");
 
@@ -148,28 +144,26 @@ class _SetupPageState extends State<SetupPage> {
                       height: 60,
                       child: FilledButton(
                           onPressed: () async {
-                            if (_todoList.isEmpty) {
+                            if (_todoList.isNotEmpty) {
                               print("migrating");
                               for (var element in _todoList) {
                                 print(element.toString());
-                                Provider.of<TaskListProvider>(context,
-                                        listen: false)
-                                    .restoreFromJson(
-                                        element["title"],
-                                        element["description"],
-                                        element["is_done"] == 0 ? false : true,
-                                        DateTime.fromMillisecondsSinceEpoch(
-                                            element["date_created"]),
-                                        DateTime.fromMillisecondsSinceEpoch(
-                                            element["date_modified"]),
-                                        [],
-                                        false,
-                                        false,
-                                        false,
-                                        element["id"],
-                                        DateTime.now(),
-                                        "low",
-                                        false);
+                                IsarHelper.instance.restoreFromJson(
+                                    element["title"],
+                                    element["description"],
+                                    element["is_done"] == 0 ? false : true,
+                                    DateTime.fromMillisecondsSinceEpoch(
+                                        element["date_created"]),
+                                    DateTime.fromMillisecondsSinceEpoch(
+                                        element["date_modified"]),
+                                    [],
+                                    false,
+                                    false,
+                                    false,
+                                    element["id"],
+                                    DateTime.now(),
+                                    "low",
+                                    false);
                               }
                             }
                             _controller.nextPage(

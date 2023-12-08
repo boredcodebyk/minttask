@@ -26,7 +26,7 @@ class BackupPage extends StatefulWidget {
 
 class _BackupPageState extends State<BackupPage> {
   bool exportDescriptionAsMD = false;
-  FleatherController _fleatherController = FleatherController();
+  FleatherController fleatherController = FleatherController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,9 +68,8 @@ class _BackupPageState extends State<BackupPage> {
                             '${tempDir.path}/$backupNameTemp';
 
                         if (!mounted) return;
-                        final collectionsJSON =
-                            context.read<TaskListProvider>();
-                        final jsonExport = await collectionsJSON.isar?.taskDatas
+                        final collectionsJSON = await IsarHelper.instance.isar;
+                        final jsonExport = await collectionsJSON.taskDatas
                             .where()
                             .exportJson();
                         File(backupPathTemp)
@@ -82,8 +81,13 @@ class _BackupPageState extends State<BackupPage> {
 
                         encoder.addFile(File(backupPathTemp));
                         if (exportDescriptionAsMD) {
-                          for (var task in collectionsJSON.taskANDarchiveList) {
-                            _fleatherController = FleatherController(
+                          for (var task in await collectionsJSON.taskDatas
+                              .where()
+                              .filter()
+                              .archiveEqualTo(true)
+                              .archiveEqualTo(false)
+                              .findAll()) {
+                            fleatherController = FleatherController(
                                 ParchmentDocument.fromJson(
                                     jsonDecode(task.description!)));
                             File f = File(
@@ -152,8 +156,7 @@ class _RestorePageState extends State<RestorePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                      "Warning! This will erase existing database and replace with the selected one. It's adviced to backup your existing database."),
-                  const Text("The app will restart once restore is finished"),
+                      "Restoring will add tasks from backup to existing database so that your current data is not overwriten."),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     child: FilledButton(
@@ -187,25 +190,23 @@ class _RestorePageState extends State<RestorePage> {
 
                                 List<dynamic> jsond = jsonDecode(decoded);
                                 for (var element in jsond) {
-                                  Provider.of<TaskListProvider>(context,
-                                          listen: false)
-                                      .restoreFromJson(
-                                          element["title"],
-                                          element["description"],
-                                          element["doneStatus"],
-                                          DateTime.fromMicrosecondsSinceEpoch(
-                                              element["dateCreated"]),
-                                          DateTime.fromMicrosecondsSinceEpoch(
-                                              element["dateModified"]),
-                                          element["labels"],
-                                          element["archive"],
-                                          element["trash"],
-                                          element["doNotify"],
-                                          element["notifyID"],
-                                          DateTime.fromMicrosecondsSinceEpoch(
-                                              element["notifyTime"]),
-                                          element["priority"],
-                                          element["pinned"]);
+                                  IsarHelper.instance.restoreFromJson(
+                                      element["title"],
+                                      element["description"],
+                                      element["doneStatus"],
+                                      DateTime.fromMicrosecondsSinceEpoch(
+                                          element["dateCreated"]),
+                                      DateTime.fromMicrosecondsSinceEpoch(
+                                          element["dateModified"]),
+                                      element["labels"],
+                                      element["archive"],
+                                      element["trash"],
+                                      element["doNotify"],
+                                      element["notifyID"],
+                                      DateTime.fromMicrosecondsSinceEpoch(
+                                          element["notifyTime"]),
+                                      element["priority"],
+                                      element["pinned"]);
                                 }
                               }
                             }
