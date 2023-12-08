@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -150,7 +152,9 @@ class _SetupPageState extends State<SetupPage> {
                                 print(element.toString());
                                 IsarHelper.instance.restoreFromJson(
                                     element["title"],
-                                    element["description"],
+                                    jsonEncode([
+                                      {"insert": "${element["description"]}\n"}
+                                    ]),
                                     element["is_done"] == 0 ? false : true,
                                     DateTime.fromMillisecondsSinceEpoch(
                                         element["date_created"]),

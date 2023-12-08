@@ -3,10 +3,14 @@
     - UI redesign
     - Added trash and archive
     - Introduced category label
-    - Updated gesture settings (new)
-    - Tasks can be reordered (new)
-    - Search function for main list (new)
-    - Switched from SQFLite to Isar (migration for implemented yet)
+    - Updated gesture settings
+    - Tasks can be reordered
+    - Search function for main list
+    - Switched from SQFLite to Isar (fixed)
+    - Tab UI for category filtering (new)
+    - Snooze notification (buggy)
+    - Backup and restore function fixed.
+    - Task's description can be exported as Markdown file in backup (new)
 
     more work left before final release.
 

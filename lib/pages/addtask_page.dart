@@ -8,7 +8,6 @@ import 'package:minttask/model/db.dart';
 import 'package:minttask/model/db_model.dart';
 
 import 'package:minttask/pages/ui/labeleditor_ui.dart';
-import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/utils.dart';
