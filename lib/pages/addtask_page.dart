@@ -367,7 +367,7 @@ class _AddTaskBoxState extends State<AddTaskBox> {
         onPressed: () {
           if (_titleController.text != '') {
             Navigator.pop(context);
-            print(jsonEncode(_fleatherController.document.toJson()));
+
             IsarHelper.instance.addTask(
               title: _titleController.text,
               description: jsonEncode(_fleatherController.document.toJson()),

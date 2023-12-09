@@ -679,7 +679,7 @@ packages:
     source: hosted
     version: "2.0.1"
   parchment:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: parchment
       sha256: "7279aeeb9e6746191b43ea0d1296db95416cf33a34e145b0f54c250a579aea8a"

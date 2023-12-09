@@ -83,8 +83,7 @@ class _ArchivePageState extends State<ArchivePage> {
               return await showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Move to trash'),
-                  content: const Text('Are you sure to move to trash?'),
+                  content: const Text('Move to trash?'),
                   actions: [
                     TextButton(
                         child: const Text("Yes"),
@@ -157,8 +156,7 @@ class _ArchivePageState extends State<ArchivePage> {
               return await showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Move to trash'),
-                  content: const Text('Are you sure to move to trash?'),
+                  content: const Text('Move to trash?'),
                   actions: [
                     TextButton(
                         child: const Text("Yes"),
@@ -229,7 +227,6 @@ class _ArchivePageState extends State<ArchivePage> {
         return null;
       },
       onDismissed: (direction) {
-        //_deleteTodo(todo['id']);
         if (direction == DismissDirection.startToEnd) {
           switch (settingsModel.leftSwipeAction) {
             case LeftSwipeAction.trash:

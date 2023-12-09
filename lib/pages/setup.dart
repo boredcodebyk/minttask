@@ -147,9 +147,7 @@ class _SetupPageState extends State<SetupPage> {
                       child: FilledButton(
                           onPressed: () async {
                             if (_todoList.isNotEmpty) {
-                              print("migrating");
                               for (var element in _todoList) {
-                                print(element.toString());
                                 IsarHelper.instance.restoreFromJson(
                                     element["title"],
                                     jsonEncode([

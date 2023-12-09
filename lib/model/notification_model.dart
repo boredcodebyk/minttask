@@ -59,11 +59,6 @@ class NotificationController {
   static Future<void> onActionReceivedMethod(
       ReceivedAction receivedAction) async {
     // Your code goes here
-    if (receivedAction.buttonKeyPressed.split("_").first == "done") {
-      print("a");
-    } else if (receivedAction.buttonKeyPressed.split("_").first == "snooze") {
-      print("b");
-    }
 
     if (MyApp.navigatorKey.currentState != null) {
       MyApp.navigatorKey.currentState!.push(
@@ -75,6 +70,5 @@ class NotificationController {
         ),
       );
     }
-    print(receivedAction);
   }
 }

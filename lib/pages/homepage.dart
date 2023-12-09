@@ -35,28 +35,41 @@ class _HomePageState extends State<HomePage> {
     var today = DateTime.now();
     final isarInstance = IsarHelper.instance;
 
-    final trashList = await isarInstance.listTrash().toList();
+    final trashList = isarInstance.listTrash();
+    trashList.listen((event) {
+      if (event.isNotEmpty) {
+        for (var element in event) {
+          final difference = today.difference(element.dateModified!).inDays;
 
-    if (trashList.first.isNotEmpty) {
-      for (var element in trashList.first) {
-        final difference = today.difference(element.dateModified!).inDays;
-        print(difference);
-        if (difference > 30) {
-          isarInstance.deleteTask(element.id!);
+          if (difference > 30) {
+            isarInstance.deleteTask(element.id!);
+          }
         }
       }
-    }
+    });
   }
 
   @override
   void initState() {
     super.initState();
-    if (widget.receivedAction != null) {
-      setState(() {
-        notificationbuttonkeypressed = widget.receivedAction!.buttonKeyPressed;
-      });
-    }
-    //deleteafter30d();
+    // if (widget.receivedAction != null) {
+    //   setState(() {
+    //     notificationbuttonkeypressed = widget.receivedAction!.buttonKeyPressed;
+    //   });
+    //   if (notificationbuttonkeypressed.split("_").first == "done") {
+    //     IsarHelper.instance.markTaskDone(
+    //         int.parse(notificationbuttonkeypressed.split("_").last), true);
+    //   } else if (notificationbuttonkeypressed.split("_").first == "snooze") {
+    //     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+    //       await showDialog(
+    //           context: context,
+    //           builder: (context) =>
+    //               SnoozeUI(receivedActionData: widget.receivedAction!));
+    //     });
+    //   }
+    // }
+
+    deleteafter30d();
   }
 
   @override
@@ -67,17 +80,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     TodoListModel tdl = Provider.of<TodoListModel>(context);
-    if (notificationbuttonkeypressed.split("_").first == "done") {
-      IsarHelper.instance.markTaskDone(
-          int.parse(notificationbuttonkeypressed.split("_").last), true);
-    } else if (notificationbuttonkeypressed.split("_").first == "snooze") {
-      SchedulerBinding.instance.addPostFrameCallback((timeStamp) async {
-        await showDialog(
-            context: context,
-            builder: (context) =>
-                SnoozeUI(receivedActionData: widget.receivedAction!));
-      });
-    }
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: Color(
@@ -164,88 +166,79 @@ class _HomePageState extends State<HomePage> {
                   onPressed: () => showSearch(
                       context: context, delegate: ListSearchDelegate()),
                   icon: const Icon(Icons.search)),
-              if (screenIndex != 1 && screenIndex != 2)
+              if (screenIndex != 1 && screenIndex != 2) ...[
                 IconButton(
                   icon: const Icon(Icons.filter_alt_outlined),
                   onPressed: () async => await showDialog(
                     context: context,
                     builder: (context) => Dialog(
-                      child: ListView(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Card(
-                              elevation: 0,
-                              child: ListView(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                children: [
-                                  RadioListTile(
-                                    value: SortList.id,
-                                    groupValue: tdl.sort,
-                                    onChanged: (value) {
-                                      tdl.sort = value!;
-                                    },
-                                    title: const Text("Default"),
-                                  ),
-                                  RadioListTile(
-                                    value: SortList.title,
-                                    groupValue: tdl.sort,
-                                    onChanged: (value) {
-                                      tdl.sort = value!;
-                                    },
-                                    title: const Text("Title"),
-                                  ),
-                                  RadioListTile(
-                                    value: SortList.dateCreated,
-                                    groupValue: tdl.sort,
-                                    onChanged: (value) {
-                                      tdl.sort = value!;
-                                    },
-                                    title: const Text("Date Created"),
-                                  ),
-                                  RadioListTile(
-                                    value: SortList.dateModified,
-                                    groupValue: tdl.sort,
-                                    onChanged: (value) {
-                                      tdl.sort = value!;
-                                    },
-                                    title: const Text("Date Modified"),
-                                  ),
-                                  const Divider(),
-                                  RadioListTile(
-                                    value: FilterList.asc,
-                                    groupValue: tdl.filter,
-                                    onChanged: (value) {
-                                      tdl.filter = value!;
-                                    },
-                                    title: const Text("Ascending"),
-                                  ),
-                                  RadioListTile(
-                                    value: FilterList.desc,
-                                    groupValue: tdl.filter,
-                                    onChanged: (value) {
-                                      tdl.filter = value!;
-                                    },
-                                    title: const Text("Descending"),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          RadioListTile(
+                            value: SortList.id,
+                            groupValue: tdl.sort,
+                            onChanged: (value) {
+                              tdl.sort = value!;
+                            },
+                            title: const Text("Default"),
+                          ),
+                          RadioListTile(
+                            value: SortList.title,
+                            groupValue: tdl.sort,
+                            onChanged: (value) {
+                              tdl.sort = value!;
+                            },
+                            title: const Text("Title"),
+                          ),
+                          RadioListTile(
+                            value: SortList.dateCreated,
+                            groupValue: tdl.sort,
+                            onChanged: (value) {
+                              tdl.sort = value!;
+                            },
+                            title: const Text("Date Created"),
+                          ),
+                          RadioListTile(
+                            value: SortList.dateModified,
+                            groupValue: tdl.sort,
+                            onChanged: (value) {
+                              tdl.sort = value!;
+                            },
+                            title: const Text("Date Modified"),
+                          ),
+                          const Divider(),
+                          RadioListTile(
+                            value: FilterList.asc,
+                            groupValue: tdl.filter,
+                            onChanged: (value) {
+                              tdl.filter = value!;
+                            },
+                            title: const Text("Ascending"),
+                          ),
+                          RadioListTile(
+                            value: FilterList.desc,
+                            groupValue: tdl.filter,
+                            onChanged: (value) {
+                              tdl.filter = value!;
+                            },
+                            title: const Text("Descending"),
                           ),
                           Padding(
                             padding: const EdgeInsets.all(16.0),
-                            child: FilledButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text("Done")),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: FilledButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text("Done")),
+                            ),
                           )
                         ],
                       ),
                     ),
                   ),
                 ),
+              ],
             ],
           ),
           SliverToBoxAdapter(

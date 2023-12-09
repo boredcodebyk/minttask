@@ -5,17 +5,13 @@ import 'package:archive/archive_io.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fleather/fleather.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
-
+import 'package:parchment/codecs.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
-import 'package:markdown_quill/markdown_quill.dart';
 import 'package:minttask/model/db.dart';
 import 'package:minttask/model/db_model.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-
-import 'package:provider/provider.dart';
 
 class BackupPage extends StatefulWidget {
   const BackupPage({super.key});
@@ -55,7 +51,7 @@ class _BackupPageState extends State<BackupPage> {
                       onPressed: () async {
                         Directory tempDir = await getTemporaryDirectory();
 
-                        final deltaToMd = DeltaToMarkdown();
+                        const deltaToMd = ParchmentMarkdownCodec();
                         if (tempDir.existsSync()) {
                           tempDir.deleteSync(recursive: true);
                         }
@@ -84,15 +80,13 @@ class _BackupPageState extends State<BackupPage> {
                           for (var task in await collectionsJSON.taskDatas
                               .where()
                               .filter()
-                              .archiveEqualTo(true)
-                              .archiveEqualTo(false)
+                              .trashEqualTo(false)
                               .findAll()) {
-                            fleatherController = FleatherController(
-                                ParchmentDocument.fromJson(
-                                    jsonDecode(task.description!)));
                             File f = File(
                                 '${tempDir.path}/${task.id}_${task.title!.trim()}.md');
-                            f.writeAsStringSync("blank"); //TODO: fix
+                            f.writeAsStringSync(deltaToMd.encoder.convert(
+                                ParchmentDocument.fromJson(
+                                    jsonDecode(task.description!))));
                             encoder.addFile(f);
                           }
                         }

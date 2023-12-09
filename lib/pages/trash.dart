@@ -28,6 +28,11 @@ class _TrashCanState extends State<TrashCan> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                      "Trash items are automatically deleted forever after 30 days."),
+                ),
                 ListBuilder(
                   itemCount: listTask.length,
                   itemBuilder: (context, index) {
@@ -115,15 +120,14 @@ class _TrashCanState extends State<TrashCan> {
               return await showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Move to archive'),
-                  content: const Text('Are you sure to move to archive?'),
+                  content: const Text('Move to archive?'),
                   actions: [
                     TextButton(
                         child: const Text("Yes"),
                         onPressed: () {
                           Navigator.pop(context, true);
                           isarInstance.moveToArchive(taskid);
-                          //_deleteTodo(todo["id"]);
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: const Text("Moved to archive"),
@@ -190,15 +194,14 @@ class _TrashCanState extends State<TrashCan> {
               return await showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Move to archive'),
-                  content: const Text('Are you sure to move to archive?'),
+                  content: const Text('Move to archive?'),
                   actions: [
                     TextButton(
                         child: const Text("Yes"),
                         onPressed: () {
                           Navigator.pop(context, true);
                           isarInstance.moveToArchive(taskid);
-                          //_deleteTodo(todo["id"]);
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: const Text("Moved to archive"),
@@ -231,7 +234,6 @@ class _TrashCanState extends State<TrashCan> {
         return null;
       },
       onDismissed: (direction) {
-        //_deleteTodo(todo['id']);
         if (direction == DismissDirection.startToEnd) {
           switch (settingsModel.leftSwipeAction) {
             case LeftSwipeAction.trash:
