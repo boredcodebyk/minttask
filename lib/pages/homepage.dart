@@ -21,8 +21,6 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
   int screenIndex = 0;
-  late bool showNavigationDrawer;
-  String notificationbuttonkeypressed = "";
 
   void handleScreenChanged(int selectedScreen) {
     setState(() {
@@ -52,22 +50,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // if (widget.receivedAction != null) {
-    //   setState(() {
-    //     notificationbuttonkeypressed = widget.receivedAction!.buttonKeyPressed;
-    //   });
-    //   if (notificationbuttonkeypressed.split("_").first == "done") {
-    //     IsarHelper.instance.markTaskDone(
-    //         int.parse(notificationbuttonkeypressed.split("_").last), true);
-    //   } else if (notificationbuttonkeypressed.split("_").first == "snooze") {
-    //     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-    //       await showDialog(
-    //           context: context,
-    //           builder: (context) =>
-    //               SnoozeUI(receivedActionData: widget.receivedAction!));
-    //     });
-    //   }
-    // }
 
     deleteafter30d();
   }
@@ -155,13 +137,6 @@ class _HomePageState extends State<HomePage> {
                         ? 92
                         : 10)),
             actions: [
-              IconButton(
-                  onPressed: () => Navigator.push(
-                      context,
-                      createRouteSharedAxisTransition(NotifyAction(
-                        receivedAction: widget.receivedAction,
-                      ))),
-                  icon: const Icon(Icons.deblur_outlined)),
               IconButton(
                   onPressed: () => showSearch(
                       context: context, delegate: ListSearchDelegate()),

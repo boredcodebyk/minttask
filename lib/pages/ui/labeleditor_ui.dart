@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:minttask/model/db_model.dart';
 import 'package:minttask/model/settings_model.dart';
 import 'package:minttask/utils/utils.dart';

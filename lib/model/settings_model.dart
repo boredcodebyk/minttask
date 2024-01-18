@@ -80,6 +80,7 @@ class SettingsModel extends ChangeNotifier {
   bool _useCustomColor = false;
   int _customColor = 16777215;
   bool _firstLaunch = true;
+  CheckboxPosition _checkBoxPosition = CheckboxPosition.left;
 
   bool get isSystemColor => _isSystemColor;
   set isSystemColor(bool value) {
@@ -137,6 +138,14 @@ class SettingsModel extends ChangeNotifier {
     save();
   }
 
+  CheckboxPosition get checkBoxPosition => _checkBoxPosition;
+  set checkBoxPosition(CheckboxPosition value) {
+    if (_checkBoxPosition == value) return;
+    _checkBoxPosition = value;
+    notifyListeners();
+    save();
+  }
+
   Future<void> save() async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setBool('isSystemColor', _isSystemColor);
@@ -146,6 +155,7 @@ class SettingsModel extends ChangeNotifier {
     prefs.setBool('useCustomColor', _useCustomColor);
     prefs.setInt('customColor', _customColor);
     prefs.setBool('firstLaunch', _firstLaunch);
+    prefs.setString('checkBoxPosition', _checkBoxPosition.toString());
   }
 
   Future<void> load() async {
@@ -164,6 +174,9 @@ class SettingsModel extends ChangeNotifier {
     _useCustomColor = prefs.getBool('useCustomColor') ?? false;
     _customColor = prefs.getInt('customColor') ?? 16777215;
     _firstLaunch = prefs.getBool('firstLaunch') ?? true;
+    _checkBoxPosition = CheckboxPosition.values.firstWhere(
+        (e) => e.toString() == prefs.getString('checkBoxPosition'),
+        orElse: () => CheckboxPosition.left);
     notifyListeners();
   }
 }

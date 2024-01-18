@@ -39,7 +39,8 @@ class IsarHelper {
       List<int>? labels,
       bool? doNotify,
       DateTime? notifyTime,
-      Priority? selectedPriority}) async {
+      Priority? selectedPriority,
+      List<SubList>? subList}) async {
     final isarInstance = await instance.isar;
 
     final newTask = TaskData()
@@ -54,7 +55,8 @@ class IsarHelper {
       ..doNotify = doNotify
       ..notifyTime = notifyTime
       ..priority = selectedPriority
-      ..pinned = false;
+      ..pinned = false
+      ..subList = subList;
 
     var tmpid = await isarInstance
         .writeTxn(() async => await isarInstance.taskDatas.put(newTask));
@@ -65,7 +67,8 @@ class IsarHelper {
     if (doNotify!) {
       update?.notifyID = tmpid;
       await AwesomeNotifications().createNotification(
-        schedule: NotificationCalendar.fromDate(date: notifyTime!),
+        schedule: NotificationCalendar.fromDate(
+            date: notifyTime!, preciseAlarm: true),
         content: NotificationContent(
             id: tmpid,
             channelKey: 'task_reminder',
@@ -89,14 +92,30 @@ class IsarHelper {
     return updateTask;
   }
 
+  void updateSubList({int? id, List<SubList>? subList}) async {
+    final isarInstance = await instance.isar;
+
+    await isarInstance.writeTxn(() async {
+      final updateTask = await isarInstance.taskDatas.get(id!);
+      if (subList != updateTask?.subList) {
+        updateTask?.subList = subList!;
+
+        updateTask?.dateModified = DateTime.now();
+        await isarInstance.taskDatas.put(updateTask!);
+      }
+    });
+  }
+
   void updateTitle({int? id, String? title}) async {
     final isarInstance = await instance.isar;
     await isarInstance.writeTxn(() async {
       final updateTask = await isarInstance.taskDatas.get(id!);
-      updateTask?.title = title;
+      if (updateTask?.title != title) {
+        updateTask?.title = title;
 
-      updateTask?.dateModified = DateTime.now();
-      return await isarInstance.taskDatas.put(updateTask!);
+        updateTask?.dateModified = DateTime.now();
+        await isarInstance.taskDatas.put(updateTask!);
+      }
     });
   }
 
@@ -104,9 +123,11 @@ class IsarHelper {
     final isarInstance = await instance.isar;
     await isarInstance.writeTxn(() async {
       final updateTask = await isarInstance.taskDatas.get(id!);
-      updateTask?.description = description;
-      updateTask?.dateModified = DateTime.now();
-      return await isarInstance.taskDatas.put(updateTask!);
+      if (updateTask?.description != description) {
+        updateTask?.description = description;
+        updateTask?.dateModified = DateTime.now();
+        await isarInstance.taskDatas.put(updateTask!);
+      }
     });
   }
 
@@ -114,19 +135,23 @@ class IsarHelper {
     final isarInstance = await instance.isar;
     await isarInstance.writeTxn(() async {
       final updateTask = await isarInstance.taskDatas.get(id!);
-      updateTask?.labels = labels;
-      updateTask?.dateModified = DateTime.now();
-      return await isarInstance.taskDatas.put(updateTask!);
+      if (updateTask?.labels != labels) {
+        updateTask?.labels = labels;
+        updateTask?.dateModified = DateTime.now();
+        await isarInstance.taskDatas.put(updateTask!);
+      }
     });
   }
 
   void updatePriority(int id, Priority selectedPriority) async {
     final isarInstance = await instance.isar;
-    final updateTask = await isarInstance.taskDatas.get(id);
-    updateTask?.priority = selectedPriority;
-    updateTask?.dateModified = DateTime.now();
     await isarInstance.writeTxn(() async {
-      isarInstance.taskDatas.put(updateTask!);
+      final updateTask = await isarInstance.taskDatas.get(id);
+      if (updateTask?.priority != selectedPriority) {
+        updateTask?.priority = selectedPriority;
+        updateTask?.dateModified = DateTime.now();
+        await isarInstance.taskDatas.put(updateTask!);
+      }
     });
   }
 
@@ -141,58 +166,59 @@ class IsarHelper {
     final isarInstance = await instance.isar;
     await isarInstance.writeTxn(() async {
       final updateTask = await isarInstance.taskDatas.get(id);
-      updateTask?.doneStatus = doneStatus;
-      updateTask?.pinned = false;
-      updateTask?.dateModified = DateTime.now();
-      return await isarInstance.taskDatas.put(updateTask!);
+      if (updateTask?.doneStatus != doneStatus) {
+        updateTask?.doneStatus = doneStatus;
+        updateTask?.pinned = false;
+        updateTask?.dateModified = DateTime.now();
+        await isarInstance.taskDatas.put(updateTask!);
+      }
     });
   }
 
   void moveToArchive(int id) async {
     final isarInstance = await instance.isar;
-    final updateTask = await isarInstance.taskDatas.get(id);
-    updateTask?.archive = true;
-
-    updateTask?.trash = false;
-
-    updateTask?.dateModified = DateTime.now();
     await isarInstance.writeTxn(() async {
-      return await isarInstance.taskDatas.put(updateTask!);
+      final updateTask = await isarInstance.taskDatas.get(id);
+      updateTask?.archive = true;
+      updateTask?.trash = false;
+      updateTask?.dateModified = DateTime.now();
+      await isarInstance.taskDatas.put(updateTask!);
     });
   }
 
   void moveToTrash(int id) async {
     final isarInstance = await instance.isar;
-    final updateTask = await isarInstance.taskDatas.get(id);
-    updateTask?.trash = true;
-
-    updateTask?.archive = false;
-
-    updateTask?.dateModified = DateTime.now();
 
     await isarInstance.writeTxn(() async {
-      return await isarInstance.taskDatas.put(updateTask!);
+      final updateTask = await isarInstance.taskDatas.get(id);
+      updateTask?.trash = true;
+      updateTask?.archive = false;
+      if (updateTask?.pinned == true) {
+        updateTask?.pinned = false;
+      }
+      updateTask?.dateModified = DateTime.now();
+      await isarInstance.taskDatas.put(updateTask!);
     });
   }
 
   void undoArchive(int id) async {
     final isarInstance = await instance.isar;
-    final updateTask = await isarInstance.taskDatas.get(id);
-    updateTask?.archive = false;
-
-    updateTask?.dateModified = DateTime.now();
     await isarInstance.writeTxn(() async {
-      return await isarInstance.taskDatas.put(updateTask!);
+      final updateTask = await isarInstance.taskDatas.get(id);
+      updateTask?.archive = false;
+
+      updateTask?.dateModified = DateTime.now();
+      await isarInstance.taskDatas.put(updateTask!);
     });
   }
 
   void undoTrash(int id) async {
     final isarInstance = await instance.isar;
-    final updateTask = await isarInstance.taskDatas.get(id);
-    updateTask?.trash = false;
-    updateTask?.dateModified = DateTime.now();
     await isarInstance.writeTxn(() async {
-      return await isarInstance.taskDatas.put(updateTask!);
+      final updateTask = await isarInstance.taskDatas.get(id);
+      updateTask?.trash = false;
+      updateTask?.dateModified = DateTime.now();
+      await isarInstance.taskDatas.put(updateTask!);
     });
   }
 
@@ -200,19 +226,21 @@ class IsarHelper {
     final isarInstance = await instance.isar;
     await isarInstance.writeTxn(() async {
       final updateTask = await isarInstance.taskDatas.get(id);
-      updateTask?.pinned = value;
-      updateTask?.dateModified = DateTime.now();
-      if (updateTask?.archive == true) {
-        updateTask?.archive = false;
+      if (updateTask?.pinned != value) {
+        updateTask?.pinned = value;
+        updateTask?.dateModified = DateTime.now();
+        if (updateTask?.archive == true) {
+          updateTask?.archive = false;
+        }
+        if (updateTask?.trash == true) {
+          updateTask?.trash = false;
+        }
+        await isarInstance.taskDatas.put(updateTask!);
       }
-      if (updateTask?.trash == true) {
-        updateTask?.trash = false;
-      }
-      isarInstance.taskDatas.put(updateTask!);
     });
   }
 
-  void updateReminder(int id, bool hasReminder, DateTime? reminderValue) async {
+  void updateReminder(int id, bool hasReminder, DateTime reminderValue) async {
     final isarInstance = await instance.isar;
     final updateTask = await isarInstance.taskDatas.get(id);
     updateTask?.doNotify = hasReminder;
@@ -221,13 +249,14 @@ class IsarHelper {
     updateTask?.dateModified = DateTime.now();
 
     await isarInstance.writeTxn(() async {
-      isarInstance.taskDatas.put(updateTask!);
+      await isarInstance.taskDatas.put(updateTask!);
     });
 
     await AwesomeNotifications().cancel(updateTask!.notifyID!);
     if (hasReminder) {
       await AwesomeNotifications().createNotification(
-        schedule: NotificationCalendar.fromDate(date: reminderValue!),
+        schedule: NotificationCalendar.fromDate(
+            date: reminderValue, preciseAlarm: true),
         content: NotificationContent(
             id: updateTask.notifyID!,
             channelKey: 'task_reminder',

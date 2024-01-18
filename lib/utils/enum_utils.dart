@@ -17,3 +17,5 @@ enum FilterList { asc, desc }
 enum SnoozeType { preset, custom }
 
 enum MinHourDays { min, hrs, days }
+
+enum CheckboxPosition { left, right }

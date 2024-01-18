@@ -32,13 +32,16 @@ class _AddTaskBoxState extends State<AddTaskBox> {
   final FleatherController _fleatherController = FleatherController();
   final TextEditingController _selectedCategoryLabelName =
       TextEditingController();
-
+  final TextEditingController _subListTitleController = TextEditingController();
   Map<int, bool> selectedCategoryLabel = {};
 
   List<int> selectedLabels = [];
 
   DateTime? reminderValue;
   bool hasReminder = false;
+
+  List<SubList> subList = [];
+  bool subListAddMode = false;
 
   void _launchUrl(String? url) async {
     if (url == null) return;
@@ -82,6 +85,131 @@ class _AddTaskBoxState extends State<AddTaskBox> {
               decoration: const InputDecoration(
                   border: InputBorder.none, hintText: "Title"),
             ),
+          ),
+          ExpansionTile(
+            initiallyExpanded: false,
+            title: Text("Sub List - ${subList.length}"),
+            children: [
+              subList.isNotEmpty
+                  ? ReorderableListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      buildDefaultDragHandles: true,
+                      onReorder: (int oldIndex, int newIndex) {
+                        setState(() {
+                          if (oldIndex < newIndex) {
+                            newIndex -= 1;
+                          }
+                          final item = subList.removeAt(oldIndex);
+                          subList.insert(newIndex, item);
+                        });
+                      },
+                      itemCount: subList.length,
+                      itemBuilder: (context, index) {
+                        var eachListItem = subList[index];
+
+                        return ListTile(
+                          key: UniqueKey(),
+                          leading: Checkbox(
+                            value: eachListItem.subListDoneStatus,
+                            onChanged: (val) {
+                              setState(() {
+                                eachListItem.subListDoneStatus = val!;
+                              });
+                            },
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 8),
+                          title: TextFormField(
+                            decoration: const InputDecoration(
+                                border: InputBorder.none, isDense: true),
+                            initialValue: eachListItem.subListtitle,
+                            onChanged: (val) {
+                              setState(() {
+                                eachListItem.subListtitle = val;
+                              });
+                            },
+                          ),
+                          trailing: Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: Icon(Icons.circle,
+                                color: eachListItem.subListpriority ==
+                                        Priority.low
+                                    ? ColorScheme.fromSeed(
+                                            seedColor: const Color.fromARGB(
+                                                1, 223, 217, 255))
+                                        .primary
+                                    : eachListItem.subListpriority ==
+                                            Priority.moderate
+                                        ? ColorScheme.fromSeed(
+                                                seedColor: const Color.fromARGB(
+                                                    1, 223, 217, 255))
+                                            .tertiary
+                                        : ColorScheme.fromSeed(
+                                                seedColor: const Color.fromARGB(
+                                                    1, 223, 217, 255))
+                                            .error),
+                          ),
+                        );
+                      },
+                    )
+                  : const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text("Sub list empty"),
+                    ),
+              ListTile(
+                leading: subListAddMode
+                    ? IconButton(
+                        padding: const EdgeInsets.all(0),
+                        onPressed: () {
+                          setState(() {
+                            subListAddMode = false;
+                            subList.add(SubList(
+                                subListDoneStatus: false,
+                                subListtitle: _subListTitleController.text,
+                                subListContent: r"""[{"insert":"\n"}]""",
+                                subListpriority: Priority.low));
+                            _subListTitleController.clear();
+                          });
+                        },
+                        icon: const Icon(Icons.done))
+                    : const Icon(Icons.add),
+                title: subListAddMode
+                    ? TextField(
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                            border: InputBorder.none, isDense: true),
+                        controller: _subListTitleController,
+                        onSubmitted: (val) {
+                          setState(() {
+                            subListAddMode = false;
+                            subList.add(SubList(
+                                subListDoneStatus: false,
+                                subListtitle: val,
+                                subListContent: r"""[{"insert":"\n"}]""",
+                                subListpriority: Priority.low));
+                            _subListTitleController.clear();
+                          });
+                        },
+                      )
+                    : const Text("Add"),
+                onTap: subListAddMode
+                    ? null
+                    : () {
+                        setState(() {
+                          subListAddMode = true;
+                        });
+                      },
+                trailing: subListAddMode
+                    ? IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => setState(() {
+                          subListAddMode = false;
+                        }),
+                      )
+                    : null,
+              )
+            ],
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -344,7 +472,12 @@ class _AddTaskBoxState extends State<AddTaskBox> {
           Expanded(
             child: Column(
               children: [
-                FleatherToolbar.basic(controller: _fleatherController),
+                FleatherToolbar.basic(
+                  controller: _fleatherController,
+                  hideListBullets: true,
+                  hideListChecks: true,
+                  hideListNumbers: true,
+                ),
                 Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
                 Expanded(
                   child: FleatherEditor(
@@ -352,6 +485,7 @@ class _AddTaskBoxState extends State<AddTaskBox> {
                     padding: EdgeInsets.only(
                       left: 16,
                       right: 16,
+                      top: 16,
                       bottom: MediaQuery.of(context).padding.bottom,
                     ),
                     onLaunchUrl: _launchUrl,
@@ -375,6 +509,7 @@ class _AddTaskBoxState extends State<AddTaskBox> {
               doNotify: hasReminder,
               notifyTime: reminderValue ?? DateTime.now(),
               selectedPriority: _selectedPriority,
+              subList: subList,
             );
           } else {
             null;

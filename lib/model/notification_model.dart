@@ -63,12 +63,13 @@ class NotificationController {
     if (MyApp.navigatorKey.currentState != null) {
       MyApp.navigatorKey.currentState!.push(
         PageRouteBuilder(
-          pageBuilder: (context, animation1, animation2) => HomePage(
+          pageBuilder: (context, animation1, animation2) => NotifyAction(
             receivedAction: receivedAction,
           ),
           transitionDuration: const Duration(milliseconds: 0),
         ),
       );
+      print(receivedAction);
     }
   }
 }

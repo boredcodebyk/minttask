@@ -167,45 +167,130 @@ class _SnoozeUIState extends State<SnoozeUI> {
                   int.parse(
                       widget.receivedActionData!.payload!.entries.first.value!),
                   true,
-                  oldReminderDateTime);
+                  oldReminderDateTime!);
               Navigator.of(context).pop();
             },
             child: const Text("Cancel")),
         TextButton(
-            onPressed: () {
+            onPressed: () async {
               if (selectedSnoozeType == SnoozeType.preset) {
                 if (durationType["Minute"] = true) {
                   var tempDateTime = oldReminderDateTime!
                       .add(Duration(minutes: selectedDuration));
-                  IsarHelper.instance.updateReminder(
-                      int.parse(widget
-                          .receivedActionData!.payload!.entries.first.value!),
-                      true,
-                      tempDateTime);
+                  await AwesomeNotifications()
+                      .cancel(widget.receivedActionData!.id!);
+                  await AwesomeNotifications().createNotification(
+                    schedule: NotificationCalendar.fromDate(
+                        date: tempDateTime, preciseAlarm: true),
+                    content: NotificationContent(
+                        id: widget.receivedActionData!.id!,
+                        channelKey: 'task_reminder',
+                        actionType: ActionType.Default,
+                        title: widget.receivedActionData?.title,
+                        category: NotificationCategory.Reminder,
+                        payload: {
+                          "id": widget.receivedActionData?.payload?.values
+                              .toList()
+                              .first
+                              .toString(),
+                        }),
+                    actionButtons: [
+                      NotificationActionButton(
+                          key: "done_${widget.receivedActionData!.id!}",
+                          label: "Done"),
+                      NotificationActionButton(
+                          key: "snooze_${widget.receivedActionData!.id!}",
+                          label: "Snooze"),
+                    ],
+                  );
                 } else if (durationType["Hour"] = true) {
                   var tempDateTime = oldReminderDateTime!
                       .add(Duration(hours: selectedDuration));
-                  IsarHelper.instance.updateReminder(
-                      int.parse(widget
-                          .receivedActionData!.payload!.entries.first.value!),
-                      true,
-                      tempDateTime);
+                  await AwesomeNotifications()
+                      .cancel(widget.receivedActionData!.id!);
+                  await AwesomeNotifications().createNotification(
+                    schedule: NotificationCalendar.fromDate(
+                        date: tempDateTime, preciseAlarm: true),
+                    content: NotificationContent(
+                        id: widget.receivedActionData!.id!,
+                        channelKey: 'task_reminder',
+                        actionType: ActionType.Default,
+                        title: widget.receivedActionData?.title,
+                        category: NotificationCategory.Reminder,
+                        payload: {
+                          "id": widget.receivedActionData?.payload?.values
+                              .toList()
+                              .first
+                              .toString(),
+                        }),
+                    actionButtons: [
+                      NotificationActionButton(
+                          key: "done_${widget.receivedActionData!.id!}",
+                          label: "Done"),
+                      NotificationActionButton(
+                          key: "snooze_${widget.receivedActionData!.id!}",
+                          label: "Snooze"),
+                    ],
+                  );
                 } else if (durationType["Day"] = true) {
                   var tempDateTime = oldReminderDateTime!
                       .add(Duration(days: selectedDuration));
-                  IsarHelper.instance.updateReminder(
-                      int.parse(widget
-                          .receivedActionData!.payload!.entries.first.value!),
-                      true,
-                      tempDateTime);
+                  await AwesomeNotifications()
+                      .cancel(widget.receivedActionData!.id!);
+                  await AwesomeNotifications().createNotification(
+                    schedule: NotificationCalendar.fromDate(
+                        date: tempDateTime, preciseAlarm: true),
+                    content: NotificationContent(
+                        id: widget.receivedActionData!.id!,
+                        channelKey: 'task_reminder',
+                        actionType: ActionType.Default,
+                        title: widget.receivedActionData?.title,
+                        category: NotificationCategory.Reminder,
+                        payload: {
+                          "id": widget.receivedActionData?.payload?.values
+                              .toList()
+                              .first
+                              .toString(),
+                        }),
+                    actionButtons: [
+                      NotificationActionButton(
+                          key: "done_${widget.receivedActionData!.id!}",
+                          label: "Done"),
+                      NotificationActionButton(
+                          key: "snooze_${widget.receivedActionData!.id!}",
+                          label: "Snooze"),
+                    ],
+                  );
                 }
               } else if (selectedSnoozeType == SnoozeType.custom) {
-                IsarHelper.instance.updateReminder(
-                    int.parse(widget
-                        .receivedActionData!.payload!.entries.first.value!),
-                    true,
-                    newReminderCustom);
+                await AwesomeNotifications()
+                    .cancel(widget.receivedActionData!.id!);
+                await AwesomeNotifications().createNotification(
+                  schedule: NotificationCalendar.fromDate(
+                      date: newReminderCustom!, preciseAlarm: true),
+                  content: NotificationContent(
+                      id: widget.receivedActionData!.id!,
+                      channelKey: 'task_reminder',
+                      actionType: ActionType.Default,
+                      title: widget.receivedActionData?.title,
+                      category: NotificationCategory.Reminder,
+                      payload: {
+                        "id": widget.receivedActionData?.payload?.values
+                            .toList()
+                            .first
+                            .toString(),
+                      }),
+                  actionButtons: [
+                    NotificationActionButton(
+                        key: "done_${widget.receivedActionData!.id!}",
+                        label: "Done"),
+                    NotificationActionButton(
+                        key: "snooze_${widget.receivedActionData!.id!}",
+                        label: "Snooze"),
+                  ],
+                );
               }
+              if (!mounted) return;
               Navigator.of(context).pop();
             },
             child: const Text("Done")),

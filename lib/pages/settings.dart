@@ -66,6 +66,7 @@ class GeneralSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SettingsModel settings = Provider.of<SettingsModel>(context);
     return Scaffold(
       body: CustomScrollView(
         slivers: <Widget>[
@@ -81,6 +82,46 @@ class GeneralSettings extends StatelessWidget {
                   title: const Text("Swipe actions"),
                   onTap: () => Navigator.push(context,
                       createRouteSharedAxisTransition(const SwipeActionPage())),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.check_box),
+                  title: const Text("Checkbox position"),
+                  subtitle: Text(settings.checkBoxPosition
+                      .toString()
+                      .split(".")
+                      .last
+                      .capitalize()),
+                  onTap: () async => await showDialog(
+                    context: context,
+                    builder: (context) {
+                      return Dialog(
+                        child: ListView(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: [
+                            RadioListTile(
+                              title: const Text("Left"),
+                              value: CheckboxPosition.left,
+                              groupValue: settings.checkBoxPosition,
+                              onChanged: (val) {
+                                settings.checkBoxPosition = val!;
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                            RadioListTile(
+                              title: const Text("Right"),
+                              value: CheckboxPosition.right,
+                              groupValue: settings.checkBoxPosition,
+                              onChanged: (val) {
+                                settings.checkBoxPosition = val!;
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 ListTile(
                   leading: const Icon(Icons.backup_outlined),

@@ -5,6 +5,7 @@ import 'package:minttask/model/db.dart';
 import 'package:minttask/model/settings_model.dart';
 import 'package:minttask/pages/info_page.dart';
 import 'package:minttask/utils/transition.dart';
+import 'package:minttask/utils/utils.dart';
 import 'package:provider/provider.dart';
 
 import '../../model/db_model.dart';
@@ -36,10 +37,13 @@ class ListViewCard extends ListTile {
   @override
   Widget build(BuildContext context) {
     TodoListModel tdl = Provider.of<TodoListModel>(context);
+    SettingsModel settingsModel = Provider.of<SettingsModel>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 1),
       child: OpenContainer(
         closedElevation: 0,
+        transitionDuration: const Duration(milliseconds: 500),
+        transitionType: ContainerTransitionType.fadeThrough,
         closedColor: Color(
             CorePalette.of(Theme.of(context).colorScheme.primary.value)
                 .neutral
@@ -65,27 +69,53 @@ class ListViewCard extends ListTile {
           onTap: () async {
             action();
           },
-          leading: Checkbox(
-            value: doneStatus,
-            onChanged: (value) => isarInstance.markTaskDone(id, value!),
-          ),
+          leading: settingsModel.checkBoxPosition == CheckboxPosition.left
+              ? Checkbox(
+                  value: doneStatus,
+                  onChanged: trash
+                      ? null
+                      : (value) => isarInstance.markTaskDone(id, value!),
+                )
+              : Icon(Icons.circle,
+                  color: selectedPriority == Priority.low
+                      ? ColorScheme.fromSeed(
+                              seedColor: const Color.fromARGB(1, 223, 217, 255))
+                          .primary
+                      : selectedPriority == Priority.moderate
+                          ? ColorScheme.fromSeed(
+                                  seedColor:
+                                      const Color.fromARGB(1, 223, 217, 255))
+                              .tertiary
+                          : ColorScheme.fromSeed(
+                                  seedColor:
+                                      const Color.fromARGB(1, 223, 217, 255))
+                              .error),
           title: Text(
             taskTitle,
             style: TextStyle(
                 decoration: doneStatus ? TextDecoration.lineThrough : null),
           ),
-          trailing: Icon(Icons.circle,
-              color: selectedPriority == Priority.low
-                  ? ColorScheme.fromSeed(
-                          seedColor: const Color.fromARGB(1, 223, 217, 255))
-                      .primary
-                  : selectedPriority == Priority.moderate
+          trailing: settingsModel.checkBoxPosition == CheckboxPosition.right
+              ? Checkbox(
+                  value: doneStatus,
+                  onChanged: trash
+                      ? null
+                      : (value) => isarInstance.markTaskDone(id, value!),
+                )
+              : Icon(Icons.circle,
+                  color: selectedPriority == Priority.low
                       ? ColorScheme.fromSeed(
                               seedColor: const Color.fromARGB(1, 223, 217, 255))
-                          .tertiary
-                      : ColorScheme.fromSeed(
-                              seedColor: const Color.fromARGB(1, 223, 217, 255))
-                          .error),
+                          .primary
+                      : selectedPriority == Priority.moderate
+                          ? ColorScheme.fromSeed(
+                                  seedColor:
+                                      const Color.fromARGB(1, 223, 217, 255))
+                              .tertiary
+                          : ColorScheme.fromSeed(
+                                  seedColor:
+                                      const Color.fromARGB(1, 223, 217, 255))
+                              .error),
         ),
         openBuilder: (context, action) => EditPage(todoId: id),
       ),
@@ -113,104 +143,92 @@ class ListViewCard extends ListTile {
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
             children: [
-              if (archive) ...[
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: ListTile(
-                    tileColor: Color(CorePalette.of(
-                            Theme.of(context).colorScheme.primary.value)
-                        .neutral
-                        .get(Theme.of(context).colorScheme.brightness ==
-                                Brightness.light
-                            ? 98
-                            : 17)),
-                    leading: const Icon(Icons.unarchive_outlined),
-                    title: const Text("Unarchive"),
-                    onTap: () async {
-                      await showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Unarchive'),
-                          content: const Text('Are you sure to undo archive?'),
-                          actions: [
-                            TextButton(
-                                child: const Text("Yes"),
-                                onPressed: () {
-                                  Navigator.pop(context, true);
-                                  isarInstance.undoArchive(id);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text("Unarchived"),
-                                      behavior: SnackBarBehavior.floating,
-                                      action: SnackBarAction(
-                                        label: "Undo",
-                                        onPressed: () {
-                                          isarInstance.moveToArchive(id);
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                }),
-                            TextButton(
-                                child: const Text("No"),
-                                onPressed: () => Navigator.pop(context, false)),
-                          ],
-                        ),
-                      );
-                      if (context.mounted) Navigator.of(context).pop();
-                    },
-                  ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: ListTile(
+                  tileColor: Color(CorePalette.of(
+                          Theme.of(context).colorScheme.primary.value)
+                      .neutral
+                      .get(Theme.of(context).colorScheme.brightness ==
+                              Brightness.light
+                          ? 98
+                          : 17)),
+                  leading: archive
+                      ? const Icon(Icons.unarchive_outlined)
+                      : const Icon(Icons.archive_outlined),
+                  title:
+                      archive ? const Text("Unarchive") : const Text("Archive"),
+                  onTap: archive
+                      ? () async {
+                          await showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              content: const Text('Unarchive?'),
+                              actions: [
+                                TextButton(
+                                    child: const Text("Yes"),
+                                    onPressed: () {
+                                      Navigator.pop(context, true);
+                                      isarInstance.undoArchive(id);
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: const Text("Unarchived"),
+                                          behavior: SnackBarBehavior.floating,
+                                          action: SnackBarAction(
+                                            label: "Undo",
+                                            onPressed: () {
+                                              isarInstance.moveToArchive(id);
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                TextButton(
+                                    child: const Text("No"),
+                                    onPressed: () =>
+                                        Navigator.pop(context, false)),
+                              ],
+                            ),
+                          );
+                          if (context.mounted) Navigator.of(context).pop();
+                        }
+                      : () async {
+                          await showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              content: const Text('Archive?'),
+                              actions: [
+                                TextButton(
+                                    child: const Text("Yes"),
+                                    onPressed: () {
+                                      Navigator.pop(context, true);
+                                      isarInstance.moveToArchive(id);
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: const Text("Unarchived"),
+                                          behavior: SnackBarBehavior.floating,
+                                          action: SnackBarAction(
+                                            label: "Undo",
+                                            onPressed: () {
+                                              isarInstance.undoArchive(id);
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                TextButton(
+                                    child: const Text("No"),
+                                    onPressed: () =>
+                                        Navigator.pop(context, false)),
+                              ],
+                            ),
+                          );
+                          if (context.mounted) Navigator.of(context).pop();
+                        },
                 ),
-              ] else ...[
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: ListTile(
-                    tileColor: Color(CorePalette.of(
-                            Theme.of(context).colorScheme.primary.value)
-                        .neutral
-                        .get(Theme.of(context).colorScheme.brightness ==
-                                Brightness.light
-                            ? 98
-                            : 17)),
-                    leading: const Icon(Icons.archive_outlined),
-                    title: const Text("Archive"),
-                    onTap: () async {
-                      await showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Move to archive'),
-                          content:
-                              const Text('Are you sure to move to archive?'),
-                          actions: [
-                            TextButton(
-                                child: const Text("Yes"),
-                                onPressed: () {
-                                  Navigator.pop(context, true);
-                                  isarInstance.moveToArchive(id);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text("Moved to archive"),
-                                      behavior: SnackBarBehavior.floating,
-                                      action: SnackBarAction(
-                                        label: "Undo",
-                                        onPressed: () {
-                                          isarInstance.undoArchive(id);
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                }),
-                            TextButton(
-                                child: const Text("No"),
-                                onPressed: () => Navigator.pop(context, false)),
-                          ],
-                        ),
-                      );
-                      if (context.mounted) Navigator.of(context).pop();
-                    },
-                  ),
-                ),
-              ],
+              ),
               if (trash) ...[
                 Padding(
                   padding: const EdgeInsets.only(bottom: 2),
@@ -228,8 +246,7 @@ class ListViewCard extends ListTile {
                       await showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: const Text('Restore'),
-                          content: const Text('Are you sure to restore?'),
+                          content: const Text('Restore?'),
                           actions: [
                             TextButton(
                                 child: const Text("Yes"),
@@ -272,12 +289,13 @@ class ListViewCard extends ListTile {
                             ? 98
                             : 17)),
                     leading: const Icon(Icons.delete_forever_outlined),
-                    title: const Text("Delete forever"),
+                    title: const Text("Delete permanently"),
                     onTap: () async {
                       await showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                          content: const Text('This task will delete forever'),
+                          content:
+                              const Text('This task will delete permanently.'),
                           actions: [
                             TextButton(
                                 child: const Text("Proceed"),
@@ -313,8 +331,7 @@ class ListViewCard extends ListTile {
                       await showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: const Text('Move to trash'),
-                          content: const Text('Are you sure to move to trash?'),
+                          content: const Text('Move to trash?'),
                           actions: [
                             TextButton(
                                 child: const Text("Yes"),

@@ -78,13 +78,19 @@ const TaskDataSchema = CollectionSchema(
       type: IsarType.string,
       enumMap: _TaskDatapriorityEnumValueMap,
     ),
-    r'title': PropertySchema(
+    r'subList': PropertySchema(
       id: 12,
+      name: r'subList',
+      type: IsarType.objectList,
+      target: r'SubList',
+    ),
+    r'title': PropertySchema(
+      id: 13,
       name: r'title',
       type: IsarType.string,
     ),
     r'trash': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'trash',
       type: IsarType.bool,
     )
@@ -96,7 +102,7 @@ const TaskDataSchema = CollectionSchema(
   idName: r'id',
   indexes: {},
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'SubList': SubListSchema},
   getId: _taskDataGetId,
   getLinks: _taskDataGetLinks,
   attach: _taskDataAttach,
@@ -128,6 +134,19 @@ int _taskDataEstimateSize(
     }
   }
   {
+    final list = object.subList;
+    if (list != null) {
+      bytesCount += 3 + list.length * 3;
+      {
+        final offsets = allOffsets[SubList]!;
+        for (var i = 0; i < list.length; i++) {
+          final value = list[i];
+          bytesCount += SubListSchema.estimateSize(value, offsets, allOffsets);
+        }
+      }
+    }
+  }
+  {
     final value = object.title;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -154,8 +173,14 @@ void _taskDataSerialize(
   writer.writeLong(offsets[9], object.orderID);
   writer.writeBool(offsets[10], object.pinned);
   writer.writeString(offsets[11], object.priority?.name);
-  writer.writeString(offsets[12], object.title);
-  writer.writeBool(offsets[13], object.trash);
+  writer.writeObjectList<SubList>(
+    offsets[12],
+    allOffsets,
+    SubListSchema.serialize,
+    object.subList,
+  );
+  writer.writeString(offsets[13], object.title);
+  writer.writeBool(offsets[14], object.trash);
 }
 
 TaskData _taskDataDeserialize(
@@ -179,8 +204,14 @@ TaskData _taskDataDeserialize(
     pinned: reader.readBoolOrNull(offsets[10]),
     priority:
         _TaskDatapriorityValueEnumMap[reader.readStringOrNull(offsets[11])],
-    title: reader.readStringOrNull(offsets[12]),
-    trash: reader.readBoolOrNull(offsets[13]),
+    title: reader.readStringOrNull(offsets[13]),
+    trash: reader.readBoolOrNull(offsets[14]),
+  );
+  object.subList = reader.readObjectList<SubList>(
+    offsets[12],
+    SubListSchema.deserialize,
+    allOffsets,
+    SubList(),
   );
   return object;
 }
@@ -218,8 +249,15 @@ P _taskDataDeserializeProp<P>(
       return (_TaskDatapriorityValueEnumMap[reader.readStringOrNull(offset)])
           as P;
     case 12:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readObjectList<SubList>(
+        offset,
+        SubListSchema.deserialize,
+        allOffsets,
+        SubList(),
+      )) as P;
     case 13:
+      return (reader.readStringOrNull(offset)) as P;
+    case 14:
       return (reader.readBoolOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1299,6 +1337,107 @@ extension TaskDataQueryFilter
     });
   }
 
+  QueryBuilder<TaskData, TaskData, QAfterFilterCondition> subListIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'subList',
+      ));
+    });
+  }
+
+  QueryBuilder<TaskData, TaskData, QAfterFilterCondition> subListIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'subList',
+      ));
+    });
+  }
+
+  QueryBuilder<TaskData, TaskData, QAfterFilterCondition> subListLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'subList',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<TaskData, TaskData, QAfterFilterCondition> subListIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'subList',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<TaskData, TaskData, QAfterFilterCondition> subListIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'subList',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<TaskData, TaskData, QAfterFilterCondition> subListLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'subList',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<TaskData, TaskData, QAfterFilterCondition>
+      subListLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'subList',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<TaskData, TaskData, QAfterFilterCondition> subListLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'subList',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<TaskData, TaskData, QAfterFilterCondition> titleIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1473,7 +1612,14 @@ extension TaskDataQueryFilter
 }
 
 extension TaskDataQueryObject
-    on QueryBuilder<TaskData, TaskData, QFilterCondition> {}
+    on QueryBuilder<TaskData, TaskData, QFilterCondition> {
+  QueryBuilder<TaskData, TaskData, QAfterFilterCondition> subListElement(
+      FilterQuery<SubList> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'subList');
+    });
+  }
+}
 
 extension TaskDataQueryLinks
     on QueryBuilder<TaskData, TaskData, QFilterCondition> {}
@@ -1974,6 +2120,12 @@ extension TaskDataQueryProperty
   QueryBuilder<TaskData, Priority?, QQueryOperations> priorityProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'priority');
+    });
+  }
+
+  QueryBuilder<TaskData, List<SubList>?, QQueryOperations> subListProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'subList');
     });
   }
 
@@ -2561,3 +2713,614 @@ extension CategoryListQueryProperty
     });
   }
 }
+
+// **************************************************************************
+// IsarEmbeddedGenerator
+// **************************************************************************
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const SubListSchema = Schema(
+  name: r'SubList',
+  id: 8370195083690766138,
+  properties: {
+    r'subListContent': PropertySchema(
+      id: 0,
+      name: r'subListContent',
+      type: IsarType.string,
+    ),
+    r'subListDoneStatus': PropertySchema(
+      id: 1,
+      name: r'subListDoneStatus',
+      type: IsarType.bool,
+    ),
+    r'subListpriority': PropertySchema(
+      id: 2,
+      name: r'subListpriority',
+      type: IsarType.string,
+      enumMap: _SubListsubListpriorityEnumValueMap,
+    ),
+    r'subListtitle': PropertySchema(
+      id: 3,
+      name: r'subListtitle',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _subListEstimateSize,
+  serialize: _subListSerialize,
+  deserialize: _subListDeserialize,
+  deserializeProp: _subListDeserializeProp,
+);
+
+int _subListEstimateSize(
+  SubList object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.subListContent;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.subListpriority;
+    if (value != null) {
+      bytesCount += 3 + value.name.length * 3;
+    }
+  }
+  {
+    final value = object.subListtitle;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _subListSerialize(
+  SubList object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.subListContent);
+  writer.writeBool(offsets[1], object.subListDoneStatus);
+  writer.writeString(offsets[2], object.subListpriority?.name);
+  writer.writeString(offsets[3], object.subListtitle);
+}
+
+SubList _subListDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = SubList(
+    subListContent: reader.readStringOrNull(offsets[0]),
+    subListDoneStatus: reader.readBoolOrNull(offsets[1]),
+    subListpriority: _SubListsubListpriorityValueEnumMap[
+        reader.readStringOrNull(offsets[2])],
+    subListtitle: reader.readStringOrNull(offsets[3]),
+  );
+  return object;
+}
+
+P _subListDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readStringOrNull(offset)) as P;
+    case 1:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 2:
+      return (_SubListsubListpriorityValueEnumMap[
+          reader.readStringOrNull(offset)]) as P;
+    case 3:
+      return (reader.readStringOrNull(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+const _SubListsubListpriorityEnumValueMap = {
+  r'low': r'low',
+  r'moderate': r'moderate',
+  r'high': r'high',
+};
+const _SubListsubListpriorityValueEnumMap = {
+  r'low': Priority.low,
+  r'moderate': Priority.moderate,
+  r'high': Priority.high,
+};
+
+extension SubListQueryFilter
+    on QueryBuilder<SubList, SubList, QFilterCondition> {
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListContentIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'subListContent',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListContentIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'subListContent',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListContentEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subListContent',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListContentGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'subListContent',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListContentLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'subListContent',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListContentBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'subListContent',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListContentStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'subListContent',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListContentEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'subListContent',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListContentContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'subListContent',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListContentMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'subListContent',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListContentIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subListContent',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListContentIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'subListContent',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListDoneStatusIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'subListDoneStatus',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListDoneStatusIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'subListDoneStatus',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListDoneStatusEqualTo(bool? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subListDoneStatus',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListpriorityIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'subListpriority',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListpriorityIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'subListpriority',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListpriorityEqualTo(
+    Priority? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subListpriority',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListpriorityGreaterThan(
+    Priority? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'subListpriority',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListpriorityLessThan(
+    Priority? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'subListpriority',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListpriorityBetween(
+    Priority? lower,
+    Priority? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'subListpriority',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListpriorityStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'subListpriority',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListpriorityEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'subListpriority',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListpriorityContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'subListpriority',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListpriorityMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'subListpriority',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListpriorityIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subListpriority',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListpriorityIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'subListpriority',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListtitleIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'subListtitle',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListtitleIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'subListtitle',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListtitleEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subListtitle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListtitleGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'subListtitle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListtitleLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'subListtitle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListtitleBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'subListtitle',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListtitleStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'subListtitle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListtitleEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'subListtitle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListtitleContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'subListtitle',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListtitleMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'subListtitle',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition> subListtitleIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'subListtitle',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SubList, SubList, QAfterFilterCondition>
+      subListtitleIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'subListtitle',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension SubListQueryObject
+    on QueryBuilder<SubList, SubList, QFilterCondition> {}

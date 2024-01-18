@@ -37,6 +37,7 @@ class TaskData {
   Priority? priority;
   bool? pinned = false;
   int? orderID;
+  List<SubList>? subList = [];
 }
 
 enum Priority {
@@ -50,4 +51,19 @@ class CategoryList {
   Id id = Isar.autoIncrement;
   String? name;
   int? orderID;
+}
+
+@embedded
+class SubList {
+  SubList({
+    this.subListDoneStatus,
+    this.subListtitle,
+    this.subListContent,
+    this.subListpriority,
+  });
+  bool? subListDoneStatus = false;
+  String? subListtitle;
+  String? subListContent;
+  @Enumerated(EnumType.name)
+  Priority? subListpriority;
 }
