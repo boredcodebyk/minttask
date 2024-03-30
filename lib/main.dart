@@ -1,83 +1,30 @@
-import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
-
-import 'package:provider/provider.dart';
-import 'package:quick_actions/quick_actions.dart';
-import 'package:quick_settings/quick_settings.dart';
-import 'package:timezone/data/latest.dart' as tz;
-
-import './pages/pages.dart';
-import 'model/notification_model.dart';
-import 'model/settings_model.dart';
-import 'utils/utils.dart';
+import 'package:minttask/model/settings_provider.dart';
+import 'package:minttask/page/pages.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await NotificationController.initializeLocalNotification();
-  AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
-    if (!isAllowed) {
-      AwesomeNotifications().requestPermissionToSendNotifications();
-    }
-  });
-  tz.initializeTimeZones();
-  QuickSettings.setup(
-    onTileClicked: onTileClick,
-    onTileAdded: onTileAdded,
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const MyApp(),
+    ),
   );
-  final settingsmodel = SettingsModel();
-  final tdl = TodoListModel();
-  settingsmodel.load();
-  tdl.load();
-  runApp(MultiProvider(providers: [
-    ChangeNotifierProvider.value(value: settingsmodel),
-    ChangeNotifierProvider.value(value: tdl),
-  ], child: const MyApp()));
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key, this.msg});
-  final String? msg;
-
-  static final GlobalKey<NavigatorState> navigatorKey =
-      GlobalKey<NavigatorState>();
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  late ReceivedAction? receivedAction;
+class MyApp extends ConsumerWidget {
+  const MyApp({super.key});
 
   @override
-  void initState() {
-    super.initState();
-    NotificationController.startListeningNotificationEvents();
-    receivedAction = NotificationController.initialAction;
-
-    const QuickActions quickActions = QuickActions();
-    quickActions.initialize((String shortcutType) {
-      if (shortcutType == 'add') {
-        Navigator.of(context).push(
-          createRouteSharedAxisTransition(
-            const AddTaskBox(),
-          ),
-        );
-      }
-      quickActions.setShortcutItems(<ShortcutItem>[
-        const ShortcutItem(
-            type: 'add',
-            localizedTitle: 'Add task',
-            icon: '@drawable/baseline_add_24'),
-      ]);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    SettingsModel settings = Provider.of<SettingsModel>(context);
+  Widget build(BuildContext context, WidgetRef ref) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Color(
@@ -96,59 +43,39 @@ class _MyAppState extends State<MyApp> {
         seedColor: const Color.fromARGB(255, 217, 229, 129),
         brightness: Brightness.dark);
     final customLightColorScheme =
-        ColorScheme.fromSeed(seedColor: Color(settings.customColor));
+        ColorScheme.fromSeed(seedColor: Color(ref.watch(selectedCustomColor)));
 
     final customDarkColorScheme = ColorScheme.fromSeed(
-        seedColor: Color(settings.customColor), brightness: Brightness.dark);
+        seedColor: Color(ref.watch(selectedCustomColor)),
+        brightness: Brightness.dark);
 
     return DynamicColorBuilder(
       builder: (lightColorScheme, darkColorScheme) {
         return MaterialApp(
-          navigatorKey: MyApp.navigatorKey,
           title: 'Mint Task',
           theme: ThemeData(
-            colorScheme: settings.isSystemColor
+            colorScheme: ref.watch(useDynamicColor)
                 ? lightColorScheme
-                : settings.useCustomColor
+                : ref.watch(useCustomColor)
                     ? customLightColorScheme
                     : defaultLightColorScheme,
             fontFamily: 'Manrope',
             useMaterial3: true,
           ),
           darkTheme: ThemeData(
-            colorScheme: settings.isSystemColor
+            colorScheme: ref.watch(useDynamicColor)
                 ? darkColorScheme
-                : settings.useCustomColor
+                : ref.watch(useCustomColor)
                     ? customDarkColorScheme
                     : defaultDarkColorScheme,
             fontFamily: 'Manrope',
             useMaterial3: true,
           ),
-          themeMode: settings.themeMode,
-          home: settings.firstLaunch ? const SetupPage() : const HomePage(),
+          themeMode: ref.watch(currentThemeMode),
+          home: const BasePage(),
+          // ref.watch(runSetup) ? const SetupPage() :
         );
       },
     );
   }
-}
-
-@pragma("vm:entry-point")
-Tile onTileClick(Tile tile) {
-  tile.label = "Add Task";
-  tile.tileStatus = TileStatus.inactive;
-  tile.stateDescription = "Mint Task";
-  tile.drawableName = "baseline_add_24";
-  MyApp.navigatorKey.currentState!
-      .push(createRouteSharedAxisTransition(const AddTaskBox()));
-  return tile;
-}
-
-@pragma("vm:entry-point")
-Tile onTileAdded(Tile tile) {
-  tile.label = "Add Task";
-  tile.tileStatus = TileStatus.inactive;
-  tile.stateDescription = "Mint Task";
-  tile.drawableName = "baseline_add_24";
-
-  return tile;
 }
