@@ -1,194 +1,166 @@
-class TodoTXT {
-  TodoTXT(
-      {required this.completion,
-      this.priority,
-      this.completionDate,
-      required this.creationDate,
-      required this.text,
-      this.tags,
-      this.context,
-      this.due});
+// Reference from https://pub.dev/packages/todo_txt
+
+class TaskText {
+  TaskText({
+    required this.completion,
+    this.priority,
+    this.completionDate,
+    required this.creationDate,
+    required this.text,
+    this.projectTag,
+    this.contextTag,
+    this.metadata,
+  });
   bool completion;
-  String? priority;
-  String? completionDate;
-  String creationDate;
+  int? priority;
+  DateTime? completionDate;
+  DateTime creationDate;
   String text;
-  List<String>? tags;
-  List<String>? context;
-  String? due;
+  List<String>? projectTag;
+  List<String>? contextTag;
+  Map<String, String>? metadata;
+
+  Map toJson() => {
+        "completion": completion,
+        "priority": priority,
+        "completionDate": completionDate,
+        "creationDate": creationDate,
+        "text": text,
+        "projectTag": projectTag,
+        "contextTag": contextTag,
+        "metadata": metadata,
+      };
+
+  factory TaskText.fromJson(Map<String, dynamic> json) => TaskText(
+        completion: json["completion"],
+        priority: json["priority"],
+        completionDate: json["completionDate"],
+        creationDate: json["creationDate"]!,
+        text: json["text"],
+        projectTag: json["projectTag"],
+        contextTag: json["contextTag"],
+        metadata: json["metadata"],
+      );
 }
 
-class TodoTXTPraser {
-  TodoTXT todotxt(value) {
-    var todo = TodoTXT(
-      completion: getCompletion(value),
-      priority: getPriority(value),
-      completionDate: getCompletionDate(value),
-      creationDate: getCreationDate(value),
-      text: getText(value),
-      tags: getTags(value),
-      context: getContext(value),
-      due: getDueDate(value),
+class TaskParser {
+  RegExp dateRegExp =
+      RegExp(r"(^\d{4}[\-](0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$)");
+
+  RegExp priorityRegExp = RegExp(r"^(\([A-Z]\)$)");
+  parser(String line) {
+    List<String> lineSplit = line.split(" ");
+    bool completion = false;
+    int? priority;
+    DateTime? completionDate;
+    DateTime? creationDate;
+    String text = "";
+    List<String> projectTag = [];
+    List<String> contextTag = [];
+    Map<String, String> metadata = {};
+
+    if (lineSplit[0] == "x") {
+      completion = true;
+      lineSplit.removeAt(0);
+      if (priorityRegExp.hasMatch(lineSplit[0])) {
+        priority = lettersToIndex(lineSplit[0].split("")[1]);
+        lineSplit.removeAt(0);
+      }
+      if (dateRegExp.hasMatch(lineSplit[0])) {
+        completionDate = DateTime.tryParse(lineSplit[0]);
+        lineSplit.removeAt(0);
+      }
+    } else if (priorityRegExp.hasMatch(lineSplit[0])) {
+      priority = lettersToIndex(lineSplit[0].split("")[1]);
+      lineSplit.removeAt(0);
+    }
+
+    if (dateRegExp.hasMatch(lineSplit[0])) {
+      creationDate = DateTime.tryParse(lineSplit[0]);
+      lineSplit.removeAt(0);
+    }
+
+    for (String e in lineSplit) {
+      if (e.startsWith("@")) {
+        contextTag.add(e.substring(1));
+      } else if (e.startsWith("+")) {
+        projectTag.add(e.substring(1));
+      } else if (e.contains(":") && RegExp(r"\w+\:(\d+|\w+)").hasMatch(e)) {
+        var keyvalue = e.split(":");
+        metadata[keyvalue[0]] = keyvalue[1];
+      } else {
+        text += " $e";
+      }
+    }
+
+    text = text.trim();
+
+    TaskText value = TaskText(
+      completion: completion,
+      priority: priority,
+      completionDate: completionDate,
+      creationDate: creationDate!,
+      text: text,
+      projectTag: projectTag,
+      contextTag: contextTag,
+      metadata: metadata,
     );
-    return todo;
+    return value;
   }
 
-  String getCreationDate(String value) {
-    var checkCompletion = RegExp(r"^x\s");
-    var checkDate =
-        RegExp(r"^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])*\s");
-    var priorityRegExp = RegExp(r"^(\([A-Z]\)[\s])");
-    if (checkCompletion.hasMatch(value)) {
-      var removeCompletionMark = value.replaceAll("x ", "").trim();
-      if (priorityRegExp.hasMatch(removeCompletionMark)) {
-        var removePriority =
-            removeCompletionMark.replaceFirst(priorityRegExp, "").trim();
-        var removeCompletionDate =
-            removePriority.replaceFirst(checkDate, "").trim();
-        var matches = checkDate.firstMatch(removeCompletionDate)!;
-        return matches[0]!;
-      } else {
-        var removeCompletionDate =
-            removeCompletionMark.replaceFirst(checkDate, "").trim();
-        var matches = checkDate.firstMatch(removeCompletionDate)!;
-        return matches[0]!;
+  lineConstructor(TaskText value) {
+    String line = "";
+
+    if (value.completion) {
+      line += "x ";
+      if (value.priority != null) {
+        line += "(${indexToLetters(value.priority!)}) ";
       }
-    } else {
-      if (priorityRegExp.hasMatch(value)) {
-        var removePriority = value.replaceFirst(priorityRegExp, "").trim();
-        var matches = checkDate.firstMatch(removePriority)!;
-        return matches[0]!;
-      } else {
-        var matches = checkDate.firstMatch(value)!;
-        return matches[0]!;
+      if (value.completionDate != null) {
+        line +=
+            "${value.completionDate?.year}-${value.completionDate!.month < 9 ? "0${value.completionDate!.month}" : value.completionDate!.month}-${value.completionDate!.day < 9 ? "0${value.completionDate!.day}" : value.completionDate!.day} ";
       }
+    } else if (value.priority != null) {
+      line += "(${indexToLetters(value.priority!)}) ";
     }
+    line +=
+        "${value.creationDate.year}-${value.creationDate.month < 9 ? "0${value.creationDate.month}" : value.creationDate.month}-${value.creationDate.day < 9 ? "0${value.creationDate.day}" : value.creationDate.day} ";
+    line += value.text;
+    if (value.contextTag!.isNotEmpty) {
+      line += " ${value.contextTag?.map((e) => "@$e").join(" ")}";
+    }
+    if (value.projectTag!.isNotEmpty) {
+      line += " ${value.projectTag?.map((e) => "+$e").join(" ")}";
+    }
+    if (value.metadata!.isNotEmpty) {
+      line +=
+          " ${value.metadata?.entries.map((e) => "${e.key}:${e.value}").join(" ")}";
+    }
+
+    line = line.trim();
+
+    return line;
   }
 
-  String getText(String value) {
-    var checkCompletion = RegExp(r"^x\s");
-    var checkDate =
-        RegExp(r"^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])*\s");
-    var priorityRegExp = RegExp(r"^(\([A-Z]\)[\s])");
-    var checkDueDate =
-        RegExp(r"(due\:(\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])*))");
-
-    if (checkCompletion.hasMatch(value)) {
-      var removeCompletionMark = value.replaceAll("x ", "").trim();
-      if (priorityRegExp.hasMatch(removeCompletionMark)) {
-        var removePriority =
-            removeCompletionMark.replaceFirst(priorityRegExp, "").trim();
-        var removeCompletionDate =
-            removePriority.replaceFirst(checkDate, "").trim();
-        var removeCreationDate =
-            removeCompletionDate.replaceFirst(checkDate, "").trim();
-        return removeCreationDate;
-      } else {
-        var removeCompletionDate =
-            removeCompletionMark.replaceFirst(checkDate, "").trim();
-        var removeCreationDate =
-            removeCompletionDate.replaceFirst(checkDate, "").trim();
-        return removeCreationDate;
-      }
-    } else {
-      if (priorityRegExp.hasMatch(value)) {
-        var removePriority = value.replaceFirst(priorityRegExp, "").trim();
-
-        var removeCreationDate =
-            removePriority.replaceFirst(checkDate, "").trim();
-        return removeCreationDate;
-      } else {
-        var removeCreationDate = value.replaceFirst(checkDate, "").trim();
-        return removeCreationDate;
-      }
+  // Credit to https://stackoverflow.com/questions/68565990/dart-how-to-convert-a-column-letter-into-number
+  int lettersToIndex(String letters) {
+    var result = 0;
+    for (var i = 0; i < letters.length; i++) {
+      result = result * 26 + (letters.codeUnitAt(i) & 0x1f);
     }
+    return result;
   }
 
-  bool getCompletion(String value) {
-    var checkCompletion = RegExp(r"^x\s");
-    if (checkCompletion.hasMatch(value)) {
-      var matches = checkCompletion.allMatches(value);
-      for (Match m in matches) {
-        String getCompletion = m[0]!;
-        return getCompletion == "x ";
-      }
-    }
-    return false;
-  }
-
-  String? getPriority(String value) {
-    var checkCompletion = RegExp(r"^x\s");
-    var priorityRegExp = RegExp(r"^(\([A-Z]\)[\s])");
-    if (checkCompletion.hasMatch(value)) {
-      var removeCompletionMark = value.replaceAll("x ", "").trim();
-      if (priorityRegExp.hasMatch(removeCompletionMark)) {
-        var matches = priorityRegExp.firstMatch(removeCompletionMark)!;
-        return matches[0]!;
-      } else {
-        return "";
-      }
-    } else {
-      if (priorityRegExp.hasMatch(value)) {
-        var matches = priorityRegExp.firstMatch(value)!;
-        return matches[0]!;
-      } else {
-        return "";
-      }
-    }
-  }
-
-  String? getCompletionDate(String value) {
-    var checkCompletion = RegExp(r"^x\s");
-    var priorityRegExp = RegExp(r"^(\([A-Z]\)[\s])");
-    var checkDate =
-        RegExp(r"^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])*\s");
-    if (checkCompletion.hasMatch(value)) {
-      var removeCompletionMark = value.replaceAll("x ", "").trim();
-      if (priorityRegExp.hasMatch(removeCompletionMark)) {
-        var removePriority =
-            removeCompletionMark.replaceFirst(priorityRegExp, "").trim();
-        var matches = checkDate.firstMatch(removePriority)!;
-        return matches[0]!;
-      } else {
-        var matches = checkDate.firstMatch(removeCompletionMark)!;
-        return matches[0]!;
-      }
-    }
-    return "";
-  }
-
-  List<String> getTags(String value) {
-    var checkTags = RegExp(r"((\s|^)\+[0-9A-Za-z]+(?=\s|$))");
-    List<String> tempTagsList = [];
-
-    var matches = checkTags.allMatches(value);
-    for (final Match m in matches) {
-      String match = m[0]!;
-      tempTagsList.add(match);
-    }
-    return tempTagsList;
-  }
-
-  List<String> getContext(String value) {
-    var checkContext = RegExp(r"((\s|^)\@[0-9A-Za-z]+(?=\s|$))");
-    List<String> tempContextList = [];
-
-    var matches = checkContext.allMatches(value);
-    for (final Match m in matches) {
-      String match = m[0]!;
-      tempContextList.add(match);
-    }
-    return tempContextList;
-  }
-
-  String? getDueDate(String value) {
-    var checkDueDate =
-        RegExp(r"(due\:(\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])*))");
-    if (checkDueDate.hasMatch(value)) {
-      var match = checkDueDate.firstMatch(value)!;
-      return match[0];
-    } else {
-      return "";
-    }
+  String indexToLetters(int index) {
+    if (index <= 0) throw RangeError.range(index, 1, null, "index");
+    const letters0 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if (index < 27) return letters0[index - 1];
+    var letters = <String>[];
+    do {
+      index -= 1;
+      letters.add(letters0[index.remainder(26)]);
+      index ~/= 26;
+    } while (index > 0);
+    return letters.reversed.join("");
   }
 }
