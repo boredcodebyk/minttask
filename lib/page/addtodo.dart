@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:minttask/model/todo_provider.dart';
 
 class AddTodo extends ConsumerStatefulWidget {
   const AddTodo({super.key});
@@ -9,6 +12,21 @@ class AddTodo extends ConsumerStatefulWidget {
 }
 
 class _AddTodoState extends ConsumerState<AddTodo> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  void loadFile() async {
+    try {
+      final todotxt = File(ref.read(filePathProvider.notifier).state);
+      ref.read(todoContentProvider.notifier).state =
+          await todotxt.readAsString();
+    } catch (e) {
+      print(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

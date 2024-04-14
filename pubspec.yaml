@@ -19,7 +19,9 @@ dependencies:
   fleather: ^1.11.0
   flutter:
     sdk: flutter
+  flutter_code_editor: ^0.3.1
   flutter_colorpicker: ^1.0.3
+  flutter_markdown: ^0.6.20
   flutter_riverpod: ^2.5.1
   flutter_svg: ^2.0.6
   flutter_whatsnew: ^1.0.5+2

@@ -1,19 +1,36 @@
 import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
+import 'package:minttask/model/file_model.dart';
+import 'package:minttask/model/todo_provider.dart';
 import 'package:minttask/model/todotxt_parser.dart';
-import 'package:minttask/page/edit_page.dart';
+import 'package:minttask/page/editpage.dart';
 
-class ListItemCard extends StatelessWidget {
-  const ListItemCard(
-      {super.key,
-      required this.todo,
-      required this.doneStatus,
-      required this.todoIndex});
+class ListItemCard extends ConsumerStatefulWidget {
+  const ListItemCard({super.key, required this.todo, required this.todoIndex});
 
   final String todo;
-  final bool doneStatus;
   final int todoIndex;
+
+  @override
+  ConsumerState<ListItemCard> createState() => _ListItemCardState();
+}
+
+class _ListItemCardState extends ConsumerState<ListItemCard> {
+  String getCurrentDate() {
+    var date = DateTime.now();
+    var formated = DateFormat("yyyy-MM-dd").format(date);
+    return formated;
+  }
+
+  var pri = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,24 +68,119 @@ class ListItemCard extends StatelessWidget {
               action();
             },
             leading: Checkbox(
-                value: TodoTXTPraser().getCompletion(todo),
-                onChanged: (value) {}),
+                value: TaskParser().parser(widget.todo).completion,
+                onChanged: (value) async {
+                  if (TaskParser().parser(widget.todo).completion) {
+                    ref.read(todoListProvider.notifier).state[
+                        widget
+                            .todoIndex] = TaskParser().lineConstructor(TaskText(
+                        completion: false,
+                        creationDate:
+                            TaskParser().parser(widget.todo).creationDate,
+                        text: TaskParser().parser(widget.todo).text,
+                        completionDate: null,
+                        contextTag: TaskParser().parser(widget.todo).contextTag,
+                        projectTag: TaskParser().parser(widget.todo).projectTag,
+                        metadata: TaskParser().parser(widget.todo).metadata,
+                        priority: TaskParser().parser(widget.todo).priority));
+                    ref.read(todoContentProvider.notifier).state =
+                        ref.watch(todoListProvider).join("\n");
+                    await FileModel().saveFile(ref.watch(filePathProvider),
+                        ref.watch(todoContentProvider));
+                    await FileModel().loadFile(ref.watch(filePathProvider),
+                        ref.read(todoContentProvider.notifier).state);
+                  } else {
+                    ref.read(todoListProvider.notifier).state[
+                        widget
+                            .todoIndex] = TaskParser().lineConstructor(TaskText(
+                        completion: true,
+                        creationDate:
+                            TaskParser().parser(widget.todo).creationDate,
+                        text: TaskParser().parser(widget.todo).text,
+                        completionDate: DateTime.now(),
+                        contextTag: TaskParser().parser(widget.todo).contextTag,
+                        projectTag: TaskParser().parser(widget.todo).projectTag,
+                        metadata: TaskParser().parser(widget.todo).metadata,
+                        priority: TaskParser().parser(widget.todo).priority));
+                    ref.read(todoContentProvider.notifier).state =
+                        ref.watch(todoListProvider).join("\n");
+                    await FileModel().saveFile(ref.watch(filePathProvider),
+                        ref.watch(todoContentProvider));
+                    await FileModel().loadFile(ref.watch(filePathProvider),
+                        ref.read(todoContentProvider.notifier).state);
+                  }
+                }),
             title: Text(
-              TodoTXTPraser().getText(todo).trim(),
+              TaskParser().parser(widget.todo).text,
               style: TextStyle(
-                  decoration: todo.split(" ").first == "x "
+                  decoration: TaskParser().parser(widget.todo).completion
                       ? TextDecoration.lineThrough
                       : null),
             ),
-            subtitle: Row(
+            subtitle: Wrap(
+              direction: Axis.horizontal,
+              spacing: 8,
               children: [
-                ...TodoTXTPraser().getTags(todo).map((e) => Text(e)),
-                ...TodoTXTPraser().getContext(todo).map((e) => Text(e)),
+                if (TaskParser().parser(widget.todo).priority == 0 ||
+                    TaskParser().parser(widget.todo).priority == null)
+                  ...[]
+                else ...[
+                  Chip(
+                    color: MaterialStatePropertyAll(
+                        Theme.of(context).colorScheme.surfaceVariant),
+                    side: BorderSide.none,
+                    avatar: const Icon(
+                      Icons.priority_high,
+                      size: 12,
+                    ),
+                    label: (TaskParser().parser(widget.todo).priority == null ||
+                            TaskParser().parser(widget.todo).priority == 0)
+                        ? const Text("")
+                        : Text(pri.split("")[
+                            TaskParser().parser(widget.todo).priority! - 1]),
+                    labelStyle: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ],
+                if (TaskParser().parser(widget.todo).completion)
+                  Chip(
+                    color: MaterialStatePropertyAll(
+                        Theme.of(context).colorScheme.surfaceVariant),
+                    side: BorderSide.none,
+                    avatar: const Icon(
+                      Icons.done,
+                      size: 16,
+                    ),
+                    label: Text(DateFormat.yMMMMd('en_US').format(
+                        TaskParser().parser(widget.todo).completionDate!)),
+                    labelStyle: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ...TaskParser().parser(widget.todo).contextTag!.map((e) => Chip(
+                      color: MaterialStatePropertyAll(
+                          Theme.of(context).colorScheme.surfaceVariant),
+                      side: BorderSide.none,
+                      avatar: const Icon(
+                        Icons.alternate_email,
+                        size: 16,
+                      ),
+                      label: Text(e),
+                      labelStyle: Theme.of(context).textTheme.labelSmall,
+                    )),
+                ...TaskParser().parser(widget.todo).projectTag!.map((e) => Chip(
+                      color: MaterialStatePropertyAll(
+                          Theme.of(context).colorScheme.surfaceVariant),
+                      side: BorderSide.none,
+                      avatar: const Icon(
+                        Icons.add,
+                        size: 16,
+                      ),
+                      label: Text(e),
+                      labelStyle: Theme.of(context).textTheme.labelSmall,
+                    )),
               ],
             ),
           );
         },
-        openBuilder: (context, action) => EditPage(index: todoIndex),
+        openBuilder: (context, action) => EditPage(index: widget.todoIndex),
       ),
     );
   }

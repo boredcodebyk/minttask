@@ -13,6 +13,15 @@ final filePathProvider = StateProvider((ref) {
   return savedPath;
 });
 
+final configfilePathProvider = StateProvider((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final savedConfigPath = prefs.getString("savedConfigPath") ?? "";
+  ref.listenSelf((previous, next) {
+    prefs.setString("savedConfigPath", next.toString());
+  });
+  return savedConfigPath;
+});
+
 final todoContentProvider = StateProvider((ref) {
   String todoContent = "";
   if (ref.watch(filePathProvider).isNotEmpty) {
@@ -30,13 +39,17 @@ final todoListProvider = StateProvider((ref) {
   return todoList;
 });
 
-class TodoNotifier extends Notifier<List<String>> {
-  List<String> todoList = [];
-  @override
-  build() {
-    return todoList;
-  }
-}
+final contextTagsInWorkspaceProvider = StateProvider((ref) {
+  List<String> allContextTags = [];
+  return allContextTags;
+});
 
-final todoProvider =
-    NotifierProvider<TodoNotifier, List<String>>(TodoNotifier.new);
+final projectTagsInWorkspaceProvider = StateProvider((ref) {
+  List<String> allProjectTags = [];
+  return allProjectTags;
+});
+
+final metadatakeysInWorkspaceProvider = StateProvider((ref) {
+  List<String> allmetadatakeys = [];
+  return allmetadatakeys;
+});

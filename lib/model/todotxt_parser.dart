@@ -48,7 +48,7 @@ class TaskParser {
       RegExp(r"(^\d{4}[\-](0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$)");
 
   RegExp priorityRegExp = RegExp(r"^(\([A-Z]\)$)");
-  parser(String line) {
+  TaskText parser(String line) {
     List<String> lineSplit = line.split(" ");
     bool completion = false;
     int? priority;
@@ -108,7 +108,49 @@ class TaskParser {
     return value;
   }
 
-  lineConstructor(TaskText value) {
+  List<String> getAllContextTags(String entireTodo) {
+    List<String> allContextTags = [];
+    List<String> todoLines = entireTodo.trim().split("\n");
+    for (var element in todoLines) {
+      for (var subelement in element.split(" ")) {
+        if (subelement.startsWith("@")) {
+          allContextTags.add(subelement.substring(1));
+        }
+      }
+    }
+    return allContextTags;
+  }
+
+  List<String> getAllProjectTags(String entireTodo) {
+    List<String> allProjectTags = [];
+    List<String> todoLines = entireTodo.trim().split("\n");
+    for (var element in todoLines) {
+      for (var subelement in element.split(" ")) {
+        if (subelement.startsWith("+")) {
+          allProjectTags.add(subelement.substring(1));
+        }
+      }
+    }
+    return allProjectTags;
+  }
+
+  List<String> getAllMetadataKeys(String entireTodo) {
+    List<String> allMetadataKeys = [];
+    List<String> todoLines = entireTodo.trim().split("\n");
+    for (var element in todoLines) {
+      for (var subelement in element.split(" ")) {
+        if (subelement.contains(":") &&
+            RegExp(r"\w+\:(\d+|\w+)").hasMatch(subelement)) {
+          var keyvalue = subelement.split(":");
+
+          allMetadataKeys.add(keyvalue[0]);
+        }
+      }
+    }
+    return allMetadataKeys;
+  }
+
+  String lineConstructor(TaskText value) {
     String line = "";
 
     if (value.completion) {
@@ -152,7 +194,9 @@ class TaskParser {
   }
 
   String indexToLetters(int index) {
-    if (index <= 0) throw RangeError.range(index, 1, null, "index");
+    if (index <= 0) {
+      //throw RangeError.range(index, 1, null, "index");
+    }
     const letters0 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     if (index < 27) return letters0[index - 1];
     var letters = <String>[];

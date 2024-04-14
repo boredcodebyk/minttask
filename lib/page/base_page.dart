@@ -3,12 +3,17 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
+import 'package:minttask/model/file_model.dart';
+import 'package:minttask/model/pagetransition.dart';
 import 'package:minttask/model/permission_provider.dart';
 import 'package:minttask/model/settings_provider.dart';
 import 'package:minttask/model/todo_provider.dart';
+import 'package:minttask/model/todotxt_parser.dart';
 import 'package:minttask/page/addtodo.dart';
 import 'package:minttask/page/archive_page.dart';
+import 'package:minttask/page/editor.dart';
 import 'package:minttask/page/home_page.dart';
+import 'package:minttask/page/settings.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class BasePage extends ConsumerStatefulWidget {
@@ -24,7 +29,8 @@ class _BasePageState extends ConsumerState<BasePage>
   int selectedIndex = 0;
   final Permission _permission = Permission.manageExternalStorage;
   late PermissionStatus _permissionStatus = PermissionStatus.denied;
-  late var pages = [const HomePage(), const ArchivePage()];
+
+  var pages = [const HomePage(), const ArchivePage(), const BulkEditor()];
 
   @override
   void initState() {
@@ -36,8 +42,34 @@ class _BasePageState extends ConsumerState<BasePage>
   void loadFile() async {
     try {
       final todotxt = File(ref.read(filePathProvider.notifier).state);
-      todotxt.readAsString().then(
-          (value) => ref.read(todoContentProvider.notifier).state = value);
+      final wsconf = File(ref.read(configfilePathProvider.notifier).state);
+      String textString = await todotxt.readAsString();
+      ref.read(todoContentProvider.notifier).state = textString;
+      WorkspaceConfig conf =
+          WorkspaceConfig.fromRawJson(await wsconf.readAsString());
+      ref.read(projectTagsInWorkspaceProvider.notifier).state =
+          conf.projects!.isEmpty
+              ? TaskParser().getAllProjectTags(textString)
+              : conf.projects!;
+      ref.read(contextTagsInWorkspaceProvider.notifier).state =
+          conf.contexts!.isEmpty
+              ? TaskParser().getAllContextTags(textString)
+              : conf.contexts!;
+      ref.read(metadatakeysInWorkspaceProvider.notifier).state =
+          conf.metadatakeys!.isEmpty
+              ? TaskParser().getAllMetadataKeys(textString)
+              : conf.metadatakeys!;
+      await wsconf.writeAsString(WorkspaceConfig(
+        projects: conf.projects!.isEmpty
+            ? TaskParser().getAllProjectTags(textString)
+            : conf.projects!,
+        contexts: conf.contexts!.isEmpty
+            ? TaskParser().getAllContextTags(textString)
+            : conf.contexts!,
+        metadatakeys: conf.metadatakeys!.isEmpty
+            ? TaskParser().getAllMetadataKeys(textString)
+            : conf.metadatakeys!,
+      ).toRawJson());
     } catch (e) {
       print(e);
     }
@@ -62,6 +94,7 @@ class _BasePageState extends ConsumerState<BasePage>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       _permission.status.then(updateStatus);
+      loadFile();
     }
   }
 
@@ -89,7 +122,6 @@ class _BasePageState extends ConsumerState<BasePage>
 
   @override
   Widget build(BuildContext context) {
-    print(ref.watch(filePathProvider));
     return Scaffold(
       resizeToAvoidBottomInset: false,
       key: scaffoldKey,
@@ -125,7 +157,11 @@ class _BasePageState extends ConsumerState<BasePage>
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
               child: TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(context,
+                      createRouteSharedAxisTransition(const SettingsPage()));
+                  scaffoldKey.currentState?.closeDrawer();
+                },
                 style: ButtonStyle(
                   padding: MaterialStateProperty.all(EdgeInsets.zero),
                   iconColor: MaterialStateProperty.all(
@@ -173,6 +209,7 @@ class _BasePageState extends ConsumerState<BasePage>
               IconButton(
                   onPressed: () {
                     ref.read(filePathProvider.notifier).state = "";
+                    ref.read(configfilePathProvider.notifier).state = "";
                   },
                   icon: const Icon(Icons.close))
             ],
@@ -190,14 +227,16 @@ class _BasePageState extends ConsumerState<BasePage>
         ],
       ),
       floatingActionButton: _permissionStatus == PermissionStatus.granted
-          ? FloatingActionButton(
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddTodo(),
-                  )),
-              child: const Icon(Icons.add),
-            )
+          ? selectedIndex != 2
+              ? FloatingActionButton(
+                  onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddTodo(),
+                      )),
+                  child: const Icon(Icons.add),
+                )
+              : null
           : null,
     );
   }
@@ -221,4 +260,9 @@ const List<SubPage> destinations = [
     icon: Icon(Icons.archive_outlined),
     selectedIcon: Icon(Icons.archive),
   ),
+  SubPage(
+    title: "Editor",
+    icon: Icon(Icons.edit_document),
+    selectedIcon: Icon(Icons.edit_document),
+  )
 ];
