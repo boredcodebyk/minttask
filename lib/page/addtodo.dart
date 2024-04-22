@@ -242,8 +242,9 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                             TextEditingController _tagController =
                                 TextEditingController();
                             List<String> tagList = [];
-                            List<ContextTag> tagListState =
-                                ref.watch(contextTagsInWorkspaceProvider);
+                            List<ContextTag>? tagListState = ref
+                                .watch(workspaceConfigStateProvider)
+                                .contexts;
                             return Padding(
                               padding: EdgeInsets.only(
                                   bottom:
@@ -252,7 +253,8 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                 builder: (context, setState) {
                                   setState(() => tagList = contextTags);
                                   setState(() => tagListState = ref
-                                      .watch(contextTagsInWorkspaceProvider));
+                                      .watch(workspaceConfigStateProvider)
+                                      .contexts);
                                   return Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -288,21 +290,37 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                                             .split(",")
                                                             .toSet()
                                                             .toList();
-                                                    var tempList = ref.watch(
-                                                        contextTagsInWorkspaceProvider);
-                                                    tempList.addAll(uniqueList
+                                                    var tempList = ref
+                                                        .watch(
+                                                            workspaceConfigStateProvider)
+                                                        .contexts;
+                                                    tempList!.addAll(uniqueList
                                                         .map((e) => ContextTag(
                                                             title: e,
                                                             description: ""))
                                                         .toList());
                                                     ref
-                                                            .read(
-                                                                contextTagsInWorkspaceProvider
-                                                                    .notifier)
-                                                            .state =
-                                                        tempList
-                                                            .toSet()
-                                                            .toList();
+                                                            .read(workspaceConfigStateProvider
+                                                                .notifier)
+                                                            .state
+                                                            .contexts =
+                                                        tempList.toSet().toList().fold(
+                                                            <ContextTag>[],
+                                                            (List<ContextTag>?
+                                                                        previousValue,
+                                                                    element) =>
+                                                                previousValue!.any((e) =>
+                                                                        e.title ==
+                                                                        element
+                                                                            .title)
+                                                                    ? previousValue
+                                                                    : [
+                                                                        ...previousValue,
+                                                                        ContextTag(
+                                                                            title:
+                                                                                element.title,
+                                                                            description: "")
+                                                                      ]);
                                                     FileManagementModel()
                                                         .saveConfigFile(
                                                             path: ref.watch(
@@ -323,15 +341,20 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                                                               ...previousValue,
                                                                               ContextTag(title: element.title, description: "")
                                                                             ]).toList(),
-                                                              projects: ref.watch(
-                                                                  projectTagsInWorkspaceProvider),
-                                                              metadatakeys:
-                                                                  ref.watch(
-                                                                      metadatakeysInWorkspaceProvider),
+                                                              projects: ref
+                                                                  .watch(
+                                                                      workspaceConfigStateProvider)
+                                                                  .projects,
+                                                              metadatakeys: ref
+                                                                  .watch(
+                                                                      workspaceConfigStateProvider)
+                                                                  .metadatakeys,
                                                             ).toRawJson());
-                                                    setState(() => tagListState =
-                                                        ref.watch(
-                                                            contextTagsInWorkspaceProvider));
+                                                    setState(() =>
+                                                        tagListState = ref
+                                                            .watch(
+                                                                workspaceConfigStateProvider)
+                                                            .contexts);
                                                   }
                                                   _tagController.clear();
                                                 },
@@ -345,7 +368,7 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                               direction: Axis.horizontal,
                                               spacing: 8,
                                               children: [
-                                                ...tagListState.map(
+                                                ...(tagListState ?? []).map(
                                                   (e) => FilterChip(
                                                     label: Text(e.title!),
                                                     selected: tagList
@@ -445,8 +468,9 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                             TextEditingController _tagController =
                                 TextEditingController();
                             List<String> tagList = [];
-                            List<String> tagListState =
-                                ref.watch(projectTagsInWorkspaceProvider);
+                            List<String>? tagListState = ref
+                                .watch(workspaceConfigStateProvider)
+                                .projects;
                             return Padding(
                               padding: EdgeInsets.only(
                                   bottom:
@@ -455,7 +479,8 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                 builder: (context, setState) {
                                   setState(() => tagList = projectTags);
                                   setState(() => tagListState = ref
-                                      .watch(projectTagsInWorkspaceProvider));
+                                      .watch(workspaceConfigStateProvider)
+                                      .projects);
                                   return Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -492,14 +517,18 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                                             .split(",")
                                                             .toSet()
                                                             .toList();
-                                                    var tempList = ref.watch(
-                                                        projectTagsInWorkspaceProvider);
-                                                    tempList.addAll(uniqueList);
+                                                    var tempList = ref
+                                                        .watch(
+                                                            workspaceConfigStateProvider)
+                                                        .projects;
+                                                    tempList!
+                                                        .addAll(uniqueList);
                                                     ref
                                                             .read(
-                                                                projectTagsInWorkspaceProvider
+                                                                workspaceConfigStateProvider
                                                                     .notifier)
-                                                            .state =
+                                                            .state
+                                                            .projects =
                                                         tempList
                                                             .toSet()
                                                             .toList();
@@ -509,18 +538,23 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                                                 configfilePathProvider),
                                                             content:
                                                                 WorkspaceConfig(
-                                                              contexts: ref.watch(
-                                                                  contextTagsInWorkspaceProvider),
+                                                              contexts: ref
+                                                                  .watch(
+                                                                      workspaceConfigStateProvider)
+                                                                  .contexts,
                                                               projects: tempList
                                                                   .toSet()
                                                                   .toList(),
-                                                              metadatakeys:
-                                                                  ref.watch(
-                                                                      metadatakeysInWorkspaceProvider),
+                                                              metadatakeys: ref
+                                                                  .watch(
+                                                                      workspaceConfigStateProvider)
+                                                                  .metadatakeys,
                                                             ).toRawJson());
-                                                    setState(() => tagListState =
-                                                        ref.watch(
-                                                            projectTagsInWorkspaceProvider));
+                                                    setState(() =>
+                                                        tagListState = ref
+                                                            .watch(
+                                                                workspaceConfigStateProvider)
+                                                            .projects);
                                                   }
                                                   _tagController.clear();
                                                 },
@@ -534,7 +568,7 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                               direction: Axis.horizontal,
                                               spacing: 8,
                                               children: [
-                                                ...tagListState.map(
+                                                ...(tagListState ?? []).map(
                                                   (e) => FilterChip(
                                                     label: Text(e),
                                                     selected:
@@ -635,8 +669,9 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                             TextEditingController _valueController =
                                 TextEditingController();
                             FocusNode _valueFieldFocus = FocusNode();
-                            List<String> metadataListState =
-                                ref.watch(metadatakeysInWorkspaceProvider);
+                            List<String>? metadataListState = ref
+                                .watch(workspaceConfigStateProvider)
+                                .metadatakeys;
                             return Padding(
                               padding: EdgeInsets.only(
                                   bottom:
@@ -645,7 +680,8 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                 builder: (context, setState) {
                                   setState(() => metadataList = metadata!);
                                   setState(() => metadataListState = ref
-                                      .watch(metadatakeysInWorkspaceProvider));
+                                      .watch(workspaceConfigStateProvider)
+                                      .metadatakeys);
                                   return Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -881,7 +917,7 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                                           .trim()
                                                           .isNotEmpty) {
                                                         for (var element
-                                                            in metadataListState) {
+                                                            in metadataListState!) {
                                                           if (_keyController
                                                                   .text !=
                                                               element) {
@@ -893,9 +929,10 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                                                 .addAll(temp);
                                                             print(metadataList);
                                                             ref
-                                                                    .read(metadatakeysInWorkspaceProvider
+                                                                    .read(workspaceConfigStateProvider
                                                                         .notifier)
-                                                                    .state =
+                                                                    .state
+                                                                    .metadatakeys =
                                                                 metadataList
                                                                     .keys
                                                                     .toList();
@@ -905,20 +942,23 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                                                         configfilePathProvider),
                                                                     content:
                                                                         WorkspaceConfig(
-                                                                      contexts:
-                                                                          ref.watch(
-                                                                              contextTagsInWorkspaceProvider),
-                                                                      projects:
-                                                                          ref.watch(
-                                                                              projectTagsInWorkspaceProvider),
+                                                                      contexts: ref
+                                                                          .watch(
+                                                                              workspaceConfigStateProvider)
+                                                                          .contexts,
+                                                                      projects: ref
+                                                                          .watch(
+                                                                              workspaceConfigStateProvider)
+                                                                          .projects,
                                                                       metadatakeys: metadataList
                                                                           .keys
                                                                           .toList(),
                                                                     ).toRawJson());
                                                             setState(() =>
-                                                                metadataListState =
-                                                                    ref.watch(
-                                                                        projectTagsInWorkspaceProvider));
+                                                                metadataListState = ref
+                                                                    .watch(
+                                                                        workspaceConfigStateProvider)
+                                                                    .metadatakeys);
 
                                                             _keyController
                                                                 .clear();
@@ -943,7 +983,7 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                                       .trim()
                                                       .isNotEmpty) {
                                                     for (var element
-                                                        in metadataListState) {
+                                                        in metadataListState!) {
                                                       if (_keyController.text !=
                                                           element) {
                                                         var temp = {
@@ -955,9 +995,10 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                                             .addAll(temp);
                                                         print(metadataList);
                                                         ref
-                                                                .read(metadatakeysInWorkspaceProvider
+                                                                .read(workspaceConfigStateProvider
                                                                     .notifier)
-                                                                .state =
+                                                                .state
+                                                                .metadatakeys =
                                                             metadataList.keys
                                                                 .toList();
                                                         FileManagementModel()
@@ -966,21 +1007,24 @@ class _AddTodoState extends ConsumerState<AddTodo> {
                                                                     configfilePathProvider),
                                                                 content:
                                                                     WorkspaceConfig(
-                                                                  contexts:
-                                                                      ref.watch(
-                                                                          contextTagsInWorkspaceProvider),
-                                                                  projects:
-                                                                      ref.watch(
-                                                                          projectTagsInWorkspaceProvider),
+                                                                  contexts: ref
+                                                                      .watch(
+                                                                          workspaceConfigStateProvider)
+                                                                      .contexts,
+                                                                  projects: ref
+                                                                      .watch(
+                                                                          workspaceConfigStateProvider)
+                                                                      .projects,
                                                                   metadatakeys:
                                                                       metadataList
                                                                           .keys
                                                                           .toList(),
                                                                 ).toRawJson());
                                                         setState(() =>
-                                                            metadataListState =
-                                                                ref.watch(
-                                                                    projectTagsInWorkspaceProvider));
+                                                            metadataListState = ref
+                                                                .watch(
+                                                                    workspaceConfigStateProvider)
+                                                                .metadatakeys);
 
                                                         _keyController.clear();
                                                         _valueController

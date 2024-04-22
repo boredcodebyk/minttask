@@ -22,14 +22,18 @@ class _AddContextTagPageState extends ConsumerState<AddContextTagPage> {
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim());
 
-    ref.read(contextTagsInWorkspaceProvider.notifier).state.add(contextTag);
+    ref
+        .read(workspaceConfigStateProvider.notifier)
+        .state
+        .contexts!
+        .add(contextTag);
     FileManagementModel().saveConfigFile(
         path: ref.watch(configfilePathProvider),
         content: WorkspaceConfig(
-                contexts: ref.watch(contextTagsInWorkspaceProvider),
-                projects: ref.watch(projectTagsInWorkspaceProvider),
-                metadatakeys: ref.watch(metadatakeysInWorkspaceProvider))
-            .toRawJson());
+          contexts: ref.watch(workspaceConfigStateProvider).contexts,
+          projects: ref.watch(workspaceConfigStateProvider).projects,
+          metadatakeys: ref.watch(workspaceConfigStateProvider).metadatakeys,
+        ).toRawJson());
     Navigator.of(context).pop();
   }
 
@@ -52,7 +56,8 @@ class _AddContextTagPageState extends ConsumerState<AddContextTagPage> {
                     ],
                     onChanged: (value) {
                       if (ref
-                          .watch(contextTagsInWorkspaceProvider)
+                          .watch(workspaceConfigStateProvider)
+                          .contexts!
                           .any((element) => element.title! == value)) {
                         setState(() => doesExist = true);
                       } else {

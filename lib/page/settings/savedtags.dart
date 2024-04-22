@@ -20,17 +20,17 @@ class SavedTags extends ConsumerWidget {
                 ListTile(
                   title: const Text("Project tags"),
                   subtitle: Text(
-                      "${ref.watch(projectTagsInWorkspaceProvider).length}"),
+                      "${ref.watch(workspaceConfigStateProvider).projects?.length}"),
                 ),
                 ListTile(
                   title: const Text("Context tags"),
                   subtitle: Text(
-                      "${ref.watch(contextTagsInWorkspaceProvider).length}"),
+                      "${ref.watch(workspaceConfigStateProvider).contexts?.length}"),
                 ),
                 ListTile(
                   title: const Text("Metadata tags"),
                   subtitle: Text(
-                      "${ref.watch(metadatakeysInWorkspaceProvider).length}"),
+                      "${ref.watch(workspaceConfigStateProvider).metadatakeys?.length}"),
                 ),
               ],
             ),
