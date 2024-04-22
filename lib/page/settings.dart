@@ -22,8 +22,8 @@ class SettingsPage extends ConsumerWidget {
               shrinkWrap: true,
               children: [
                 ListTile(
-                  leading: Icon(Icons.short_text_sharp),
-                  title: Text("Active workspace"),
+                  leading: const Icon(Icons.short_text_sharp),
+                  title: const Text("Active workspace"),
                   subtitle: Text(ref.watch(filePathProvider)),
                   onTap: () => Navigator.push(
                       context,

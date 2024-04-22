@@ -1,18 +1,18 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
 import 'package:minttask/model/file_model.dart';
 import 'package:minttask/model/pagetransition.dart';
-import 'package:minttask/model/permission_provider.dart';
-import 'package:minttask/model/settings_provider.dart';
 import 'package:minttask/model/todo_provider.dart';
 import 'package:minttask/model/todotxt_parser.dart';
+import 'package:minttask/page/addcontexttag.dart';
 import 'package:minttask/page/addtodo.dart';
 import 'package:minttask/page/archive_page.dart';
 import 'package:minttask/page/editor.dart';
-import 'package:minttask/page/home_page.dart';
+import 'package:minttask/page/pages.dart';
 import 'package:minttask/page/settings.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -30,7 +30,12 @@ class _BasePageState extends ConsumerState<BasePage>
   final Permission _permission = Permission.manageExternalStorage;
   late PermissionStatus _permissionStatus = PermissionStatus.denied;
 
-  var pages = [const HomePage(), const ArchivePage(), const BulkEditor()];
+  var pages = [
+    const HomePage(),
+    const ContextTagListPage(),
+    const ArchivePage(),
+    const BulkEditor()
+  ];
 
   @override
   void initState() {
@@ -41,37 +46,135 @@ class _BasePageState extends ConsumerState<BasePage>
 
   void loadFile() async {
     try {
-      final todotxt = File(ref.read(filePathProvider.notifier).state);
-      final wsconf = File(ref.read(configfilePathProvider.notifier).state);
-      String textString = await todotxt.readAsString();
-      ref.read(todoContentProvider.notifier).state = textString;
-      WorkspaceConfig conf =
-          WorkspaceConfig.fromRawJson(await wsconf.readAsString());
-      ref.read(projectTagsInWorkspaceProvider.notifier).state =
-          conf.projects!.isEmpty
-              ? TaskParser().getAllProjectTags(textString)
-              : conf.projects!;
-      ref.read(contextTagsInWorkspaceProvider.notifier).state =
-          conf.contexts!.isEmpty
-              ? TaskParser().getAllContextTags(textString)
-              : conf.contexts!;
-      ref.read(metadatakeysInWorkspaceProvider.notifier).state =
-          conf.metadatakeys!.isEmpty
-              ? TaskParser().getAllMetadataKeys(textString)
-              : conf.metadatakeys!;
-      await wsconf.writeAsString(WorkspaceConfig(
-        projects: conf.projects!.isEmpty
-            ? TaskParser().getAllProjectTags(textString)
-            : conf.projects!,
-        contexts: conf.contexts!.isEmpty
-            ? TaskParser().getAllContextTags(textString)
-            : conf.contexts!,
-        metadatakeys: conf.metadatakeys!.isEmpty
-            ? TaskParser().getAllMetadataKeys(textString)
-            : conf.metadatakeys!,
-      ).toRawJson());
+      if (ref.watch(filePathProvider).isNotEmpty) {
+        var result = await FileManagementModel()
+            .readTextFile(path: ref.watch(filePathProvider));
+        if (result.error != null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(result.error.toString())));
+        } else {
+          String textString = result.result!;
+          ref.read(todoContentProvider.notifier).state = textString;
+          File wsconf = File(ref.watch(configfilePathProvider));
+          if (!(await wsconf.exists())) {
+            await wsconf.create();
+            await wsconf.writeAsString(WorkspaceConfig(
+              contexts: [],
+              projects: [],
+              metadatakeys: [],
+            ).toRawJson());
+          }
+          WorkspaceConfig configFile =
+              WorkspaceConfig.fromRawJson(await wsconf.readAsString());
+
+          // Step 1: Read the config file and add new data
+
+          WorkspaceConfig newConfig = WorkspaceConfig(
+            contexts: configFile.contexts!
+                .followedBy(TaskParser()
+                    .getAllContextTags(textString)
+                    .map((e) => ContextTag(title: e, description: ""))
+                    .toList())
+                .toList()
+                .fold(
+                    <ContextTag>[],
+                    (List<ContextTag>? previousValue, element) => previousValue!
+                            .any((e) => e.title == element.title)
+                        ? previousValue
+                        : [
+                            ...previousValue,
+                            ContextTag(title: element.title, description: "")
+                          ]),
+            projects: configFile.projects!
+                .followedBy(TaskParser().getAllProjectTags(textString))
+                .toList()
+                .toSet()
+                .toList(),
+            metadatakeys: configFile.metadatakeys!
+                .followedBy(TaskParser().getAllMetadataKeys(textString))
+                .toList()
+                .toSet()
+                .toList(),
+          );
+
+          // Step 2: save new data to file and update state
+
+          await wsconf.writeAsString(newConfig.toRawJson());
+          ref.read(workspaceConfigStateProvider.notifier).state = newConfig;
+
+          WorkspaceConfig conf = (await wsconf.exists())
+              ? WorkspaceConfig.fromRawJson(await wsconf.readAsString())
+              : WorkspaceConfig.fromRawJson(
+                  await (await wsconf.writeAsString(WorkspaceConfig(
+                  contexts: [],
+                  projects: [],
+                  metadatakeys: [],
+                ).toRawJson()))
+                      .readAsString());
+          ref.read(projectTagsInWorkspaceProvider.notifier).state = conf
+              .projects!
+              .followedBy(TaskParser().getAllProjectTags(textString))
+              .toList()
+              .toSet()
+              .toList();
+          ref.read(contextTagsInWorkspaceProvider.notifier).state = conf
+              .contexts!
+              .followedBy(TaskParser()
+                  .getAllContextTags(textString)
+                  .map((e) => ContextTag(title: e, description: ""))
+                  .toList())
+              .toList()
+              .fold(
+                  <ContextTag>[],
+                  (List<ContextTag>? previousValue, element) =>
+                      previousValue!.any((e) => e.title == element.title)
+                          ? previousValue
+                          : [
+                              ...previousValue,
+                              ContextTag(title: element.title, description: "")
+                            ]);
+
+          ref.read(metadatakeysInWorkspaceProvider.notifier).state = conf
+              .metadatakeys!
+              .followedBy(TaskParser().getAllMetadataKeys(textString))
+              .toList()
+              .toSet()
+              .toList();
+          await wsconf.writeAsString(WorkspaceConfig(
+            projects: conf.projects!
+                .followedBy(TaskParser().getAllProjectTags(textString))
+                .toList()
+                .toSet()
+                .toList(),
+            contexts: conf.contexts!
+                .followedBy(TaskParser()
+                    .getAllContextTags(textString)
+                    .map((e) => ContextTag(title: e, description: ""))
+                    .toList())
+                .toList()
+                .fold(
+                    <ContextTag>[],
+                    (List<ContextTag>? previousValue, element) => previousValue!
+                            .any((e) => e.title == element.title)
+                        ? previousValue
+                        : [
+                            ...previousValue,
+                            ContextTag(title: element.title, description: "")
+                          ]).toList(),
+            metadatakeys: conf.metadatakeys!
+                .followedBy(TaskParser().getAllMetadataKeys(textString))
+                .toList()
+                .toSet()
+                .toList(),
+          ).toRawJson());
+        }
+      }
     } catch (e) {
-      print(e);
+      if (kDebugMode) {
+        print(e);
+      }
     }
   }
 
@@ -122,6 +225,7 @@ class _BasePageState extends ConsumerState<BasePage>
 
   @override
   Widget build(BuildContext context) {
+    loadFile();
     return Scaffold(
       resizeToAvoidBottomInset: false,
       key: scaffoldKey,
@@ -198,6 +302,14 @@ class _BasePageState extends ConsumerState<BasePage>
       body: CustomScrollView(
         slivers: [
           SliverAppBar.large(
+            leading: ref.watch(selectedItem).isNotEmpty
+                ? IconButton(
+                    onPressed: () =>
+                        ref.read(selectedItem.notifier).state.clear(),
+                    icon: const Icon(Icons.close))
+                : IconButton(
+                    onPressed: () => scaffoldKey.currentState?.openDrawer(),
+                    icon: const Icon(Icons.menu)),
             title: Text(destinations[selectedIndex].title),
             backgroundColor: Color(
                 CorePalette.of(Theme.of(context).colorScheme.primary.value)
@@ -216,7 +328,16 @@ class _BasePageState extends ConsumerState<BasePage>
           ),
           SliverToBoxAdapter(
             child: _permissionStatus == PermissionStatus.granted
-                ? pages[selectedIndex]
+                ? switch (selectedIndex) {
+                    0 => const HomePage(),
+                    1 => const ContextTagListPage(),
+                    2 => const ArchivePage(),
+                    3 => const BulkEditor(),
+                    // TODO: Handle this case.
+                    int() => const Center(
+                        child: Text("Where am I?"),
+                      ),
+                  }
                 : Center(
                     child: FilledButton(
                       onPressed: () => _permission.request(),
@@ -227,17 +348,65 @@ class _BasePageState extends ConsumerState<BasePage>
         ],
       ),
       floatingActionButton: _permissionStatus == PermissionStatus.granted
-          ? selectedIndex != 2
-              ? FloatingActionButton(
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddTodo(),
-                      )),
-                  child: const Icon(Icons.add),
-                )
-              : null
+          ? switch (selectedIndex) {
+              0 => ref.watch(filePathProvider).isNotEmpty
+                  ? FloatingActionButton(
+                      onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AddTodo(),
+                          )),
+                      child: const Icon(Icons.add),
+                    )
+                  : null,
+              1 => ref.watch(filePathProvider).isNotEmpty
+                  ? FloatingActionButton(
+                      onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AddContextTagPage(),
+                          )),
+                      child: const Icon(Icons.add),
+                    )
+                  : null,
+              2 => ref.watch(filePathProvider).isNotEmpty
+                  ? FloatingActionButton(
+                      onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AddTodo(),
+                          )),
+                      child: const Icon(Icons.add),
+                    )
+                  : null,
+              3 => ref.watch(filePathProvider).isNotEmpty
+                  ? FloatingActionButton(
+                      onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AddTodo(),
+                          )),
+                      child: const Icon(Icons.add),
+                    )
+                  : null,
+              // TODO: Handle this case.
+              int() => null,
+            }
           : null,
+      // floatingActionButton: _permissionStatus == PermissionStatus.granted
+      //     ? selectedIndex != 2
+      //         ? ref.watch(filePathProvider).isNotEmpty
+      //             ? FloatingActionButton(
+      //                 onPressed: () => Navigator.push(
+      //                     context,
+      //                     MaterialPageRoute(
+      //                       builder: (context) => const AddTodo(),
+      //                     )),
+      //                 child: const Icon(Icons.add),
+      //               )
+      //             : null
+      //         : null
+      //     : null,
     );
   }
 }
@@ -254,6 +423,11 @@ const List<SubPage> destinations = [
     title: "Home",
     icon: Icon(Icons.home_outlined),
     selectedIcon: Icon(Icons.home),
+  ),
+  SubPage(
+    title: "Lists",
+    icon: Icon(Icons.list_alt),
+    selectedIcon: Icon(Icons.list_alt),
   ),
   SubPage(
     title: "Archive",

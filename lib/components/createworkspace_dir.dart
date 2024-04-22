@@ -149,7 +149,7 @@ class _CreateWorkspaceDirState extends ConsumerState<CreateWorkspaceDir> {
                   ),
                   if (_workspacePath.text.isNotEmpty)
                     Text(
-                        "Summery:\n - Workspace path: ${_workspacePath.text}\n - Files in Workspace:\n     - todo.txt ($selectedPath/todo.txt)")
+                        "Summery:\n - Workspace path: ${_workspacePath.text}\n - Files in Workspace:\n     - todo.txt ($selectedPath/todo.txt)\n     - workspace.json ($selectedPath/workspace.json)"),
                 ],
               ),
             ),

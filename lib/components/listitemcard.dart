@@ -9,10 +9,15 @@ import 'package:minttask/model/todotxt_parser.dart';
 import 'package:minttask/page/editpage.dart';
 
 class ListItemCard extends ConsumerStatefulWidget {
-  const ListItemCard({super.key, required this.todo, required this.todoIndex});
+  const ListItemCard(
+      {super.key,
+      required this.todo,
+      required this.todoIndex,
+      required this.isSelected});
 
   final String todo;
   final int todoIndex;
+  final bool isSelected;
 
   @override
   ConsumerState<ListItemCard> createState() => _ListItemCardState();
@@ -38,7 +43,7 @@ class _ListItemCardState extends ConsumerState<ListItemCard> {
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 1),
       child: OpenContainer(
         closedElevation: 0,
-        transitionDuration: const Duration(milliseconds: 500),
+        transitionDuration: const Duration(milliseconds: 300),
         transitionType: ContainerTransitionType.fadeThrough,
         closedColor: Color(
             CorePalette.of(Theme.of(context).colorScheme.primary.value)
@@ -57,6 +62,15 @@ class _ListItemCardState extends ConsumerState<ListItemCard> {
                         : 17)),
         closedBuilder: (context, action) {
           return ListTile(
+            selected: widget.isSelected,
+            onLongPress: () {
+              widget.isSelected
+                  ? ref
+                      .read(selectedItem.notifier)
+                      .state
+                      .removeWhere((item) => item == widget.todoIndex)
+                  : ref.read(selectedItem.notifier).state.add(widget.todoIndex);
+            },
             isThreeLine: true,
             tileColor: Color(
                 CorePalette.of(Theme.of(context).colorScheme.primary.value)
@@ -71,7 +85,7 @@ class _ListItemCardState extends ConsumerState<ListItemCard> {
                 value: TaskParser().parser(widget.todo).completion,
                 onChanged: (value) async {
                   if (TaskParser().parser(widget.todo).completion) {
-                    ref.read(todoListProvider.notifier).state[
+                    (ref.read(todoListProvider.notifier).state)[
                         widget
                             .todoIndex] = TaskParser().lineConstructor(TaskText(
                         completion: false,
@@ -85,10 +99,15 @@ class _ListItemCardState extends ConsumerState<ListItemCard> {
                         priority: TaskParser().parser(widget.todo).priority));
                     ref.read(todoContentProvider.notifier).state =
                         ref.watch(todoListProvider).join("\n");
-                    await FileModel().saveFile(ref.watch(filePathProvider),
-                        ref.watch(todoContentProvider));
-                    await FileModel().loadFile(ref.watch(filePathProvider),
-                        ref.read(todoContentProvider.notifier).state);
+
+                    await FileManagementModel().saveTextFile(
+                        path: ref.watch(filePathProvider),
+                        content: ref.watch(todoContentProvider));
+                    var r = await FileManagementModel()
+                        .readTextFile(path: ref.watch(filePathProvider));
+                    if (r.result!.isNotEmpty) {
+                      ref.read(todoContentProvider.notifier).state = r.result!;
+                    }
                   } else {
                     ref.read(todoListProvider.notifier).state[
                         widget
@@ -104,10 +123,14 @@ class _ListItemCardState extends ConsumerState<ListItemCard> {
                         priority: TaskParser().parser(widget.todo).priority));
                     ref.read(todoContentProvider.notifier).state =
                         ref.watch(todoListProvider).join("\n");
-                    await FileModel().saveFile(ref.watch(filePathProvider),
-                        ref.watch(todoContentProvider));
-                    await FileModel().loadFile(ref.watch(filePathProvider),
-                        ref.read(todoContentProvider.notifier).state);
+                    await FileManagementModel().saveTextFile(
+                        path: ref.watch(filePathProvider),
+                        content: ref.watch(todoContentProvider));
+                    var r = await FileManagementModel()
+                        .readTextFile(path: ref.watch(filePathProvider));
+                    if (r.result!.isNotEmpty) {
+                      ref.read(todoContentProvider.notifier).state = r.result!;
+                    }
                   }
                 }),
             title: Text(
@@ -121,10 +144,8 @@ class _ListItemCardState extends ConsumerState<ListItemCard> {
               direction: Axis.horizontal,
               spacing: 8,
               children: [
-                if (TaskParser().parser(widget.todo).priority == 0 ||
-                    TaskParser().parser(widget.todo).priority == null)
-                  ...[]
-                else ...[
+                if (!(TaskParser().parser(widget.todo).priority == 0 ||
+                    TaskParser().parser(widget.todo).priority == null)) ...[
                   Chip(
                     color: MaterialStatePropertyAll(
                         Theme.of(context).colorScheme.surfaceVariant),

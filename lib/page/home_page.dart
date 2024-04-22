@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:minttask/components/createworkspace_dir.dart';
@@ -19,16 +16,13 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
-    FileModel().loadFile(ref.watch(filePathProvider),
-        ref.read(todoContentProvider.notifier).state);
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         ref.watch(filePathProvider).isNotEmpty
             ? ref.watch(todoListProvider).isNotEmpty
@@ -48,67 +42,58 @@ class _HomePageState extends ConsumerState<HomePage> {
                         itemCount: ref.watch(todoListProvider).length,
                         itemBuilder: (context, index) {
                           var todo = ref.watch(todoListProvider)[index];
-                          return Column(
-                            children: [
-                              ListItemCard(todo: todo, todoIndex: index),
-                            ],
-                          );
+                          var isSelected =
+                              ref.watch(selectedItem).contains(index);
+                          return ListItemCard(
+                              todo: todo,
+                              todoIndex: index,
+                              isSelected: isSelected);
                         },
                       ),
                     ),
                   )
                 : const Text("Empty")
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FilledButton(
-                    onPressed: () async {
-                      showDialog(
-                        context: context,
-                        builder: (context) => const Dialog.fullscreen(
-                            child: CreateWorkspaceDir()),
-                      );
-                    },
-                    child: const Text("Create New todo.txt File"),
-                  ),
-                  FilledButton(
-                    onPressed: () async {
-                      String? selectedDirectory =
-                          await FilePicker.platform.getDirectoryPath();
+            : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Welcome to Mint task\n",
+                      style: Theme.of(context).textTheme.displaySmall,
+                    ),
+                    FilledButton(
+                      onPressed: () async {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const Dialog.fullscreen(
+                              child: CreateWorkspaceDir()),
+                        );
+                      },
+                      child: const Text("Create New Workspace"),
+                    ),
+                    FilledButton(
+                      onPressed: () async {
+                        var result = await FileManagementModel().openTextFile();
 
-                      if (selectedDirectory == null) {
-                        // User canceled the picker
-                      } else {
-                        File todotxtFile = File("$selectedDirectory/todo.txt");
-                        File wsconf = File("$selectedDirectory/workspace.json");
-                        if (await todotxtFile.exists()) {
-                          ref.read(filePathProvider.notifier).state =
-                              todotxtFile.path;
-                          if (!(await wsconf.exists())) {
-                            await wsconf.create();
-
-                            await wsconf.writeAsString(WorkspaceConfig(
-                              contexts: [],
-                              projects: [],
-                              metadatakeys: [],
-                            ).toRawJson());
-                            ref.read(configfilePathProvider.notifier).state =
-                                '$selectedDirectory/workspace.json';
-                          } else {
-                            ref.read(configfilePathProvider.notifier).state =
-                                '$selectedDirectory/workspace.json';
-                          }
-                        } else {
+                        if (result.error == 687869) {
                           if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              behavior: SnackBarBehavior.floating,
                               content: Text(
                                   "Folder does not contain \"todo.txt\" file")));
+                        } else {
+                          ref.read(configfilePathProvider.notifier).state =
+                              result.result!.split(",")[0];
+                          ref.read(filePathProvider.notifier).state =
+                              result.result!.split(",")[1];
                         }
-                      }
-                    },
-                    child: const Text("Open todo.txt File"),
-                  ),
-                ],
+                      },
+                      child: const Text("Open Existing Workspace"),
+                    ),
+                  ],
+                ),
               )
       ],
     );

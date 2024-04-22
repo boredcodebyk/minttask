@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:minttask/model/file_model.dart';
 
 import 'settings_provider.dart';
 
@@ -34,13 +35,15 @@ final todoContentProvider = StateProvider((ref) {
 });
 
 final todoListProvider = StateProvider((ref) {
-  List<String> todoList = ref.watch(todoContentProvider).trim().split("\n");
+  List<String> todoList = ref.watch(todoContentProvider).trim().isNotEmpty
+      ? ref.watch(todoContentProvider).trim().split("\n")
+      : [];
 
   return todoList;
 });
 
 final contextTagsInWorkspaceProvider = StateProvider((ref) {
-  List<String> allContextTags = [];
+  List<ContextTag> allContextTags = [];
   return allContextTags;
 });
 
@@ -53,3 +56,10 @@ final metadatakeysInWorkspaceProvider = StateProvider((ref) {
   List<String> allmetadatakeys = [];
   return allmetadatakeys;
 });
+
+final selectedItem = StateProvider((ref) {
+  List<int> selectedIndex = [];
+  return selectedIndex;
+});
+
+final workspaceConfigStateProvider = StateProvider((ref) => WorkspaceConfig());

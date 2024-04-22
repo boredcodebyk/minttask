@@ -1,5 +1,7 @@
 // Reference from https://pub.dev/packages/todo_txt
 
+import 'package:minttask/model/file_model.dart';
+
 class TaskText {
   TaskText({
     required this.completion,
