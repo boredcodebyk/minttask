@@ -42,20 +42,20 @@ final todoListProvider = StateProvider((ref) {
   return todoList;
 });
 
-final contextTagsInWorkspaceProvider = StateProvider((ref) {
-  List<ContextTag> allContextTags = [];
-  return allContextTags;
-});
+// final contextTagsInWorkspaceProvider = StateProvider((ref) {
+//   List<ContextTag> allContextTags = [];
+//   return allContextTags;
+// });
 
-final projectTagsInWorkspaceProvider = StateProvider((ref) {
-  List<String> allProjectTags = [];
-  return allProjectTags;
-});
+// final projectTagsInWorkspaceProvider = StateProvider((ref) {
+//   List<String> allProjectTags = [];
+//   return allProjectTags;
+// });
 
-final metadatakeysInWorkspaceProvider = StateProvider((ref) {
-  List<String> allmetadatakeys = [];
-  return allmetadatakeys;
-});
+// final metadatakeysInWorkspaceProvider = StateProvider((ref) {
+//   List<String> allmetadatakeys = [];
+//   return allmetadatakeys;
+// });
 
 final selectedItem = StateProvider((ref) {
   List<int> selectedIndex = [];

@@ -20,7 +20,7 @@ class ContextTagListPage extends ConsumerWidget {
           padding: EdgeInsets.all(16.0),
           child: Text("data"),
         ),
-        ref.watch(contextTagsInWorkspaceProvider).isNotEmpty
+        ref.watch(workspaceConfigStateProvider).contexts!.isNotEmpty
             ? Padding(
                 padding: const EdgeInsets.only(bottom: 96.0),
                 child: Card(
@@ -32,10 +32,14 @@ class ContextTagListPage extends ConsumerWidget {
                   child: ListView.builder(
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
-                    itemCount: ref.watch(contextTagsInWorkspaceProvider).length,
+                    itemCount: ref
+                        .watch(workspaceConfigStateProvider)
+                        .contexts!
+                        .length,
                     itemBuilder: (context, index) {
-                      var item =
-                          ref.watch(contextTagsInWorkspaceProvider)[index];
+                      var item = ref
+                          .watch(workspaceConfigStateProvider)
+                          .contexts![index];
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 0, vertical: 1),
