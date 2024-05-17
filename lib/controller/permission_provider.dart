@@ -1,14 +1,28 @@
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+
 class PermissionNotifier extends Notifier<PermissionStatus> {
-  final Permission _permission = Permission.manageExternalStorage;
+  final Permission _permissionManageExternalStorage =
+      Permission.manageExternalStorage;
+
+  final Permission _permissionStorage = Permission.storage;
 
   @override
   PermissionStatus build() => PermissionStatus.denied;
 
   void requestPermission() {
-    _permission.request().then(updatePermissionStatus);
+    deviceInfo.androidInfo.then(
+      (value) {
+        value.version.sdkInt > 32
+            ? _permissionManageExternalStorage
+                .request()
+                .then(updatePermissionStatus)
+            : _permissionStorage.request().then(updatePermissionStatus);
+      },
+    );
   }
 
   void updatePermissionStatus(PermissionStatus status) {
@@ -18,16 +32,30 @@ class PermissionNotifier extends Notifier<PermissionStatus> {
   }
 
   void fetchPermissionStatus() {
-    _permission.status.then(updatePermissionStatus);
+    deviceInfo.androidInfo.then((value) {
+      value.version.sdkInt > 32
+          ? _permissionManageExternalStorage.status.then(updatePermissionStatus)
+          : _permissionStorage.status.then(updatePermissionStatus);
+    });
   }
 
   void onStatusRequested(status) {
-    _permission.status.then((value) {
-      if (value != PermissionStatus.granted) {
-        openAppSettings();
-      } else {
-        updatePermissionStatus(value);
-      }
+    deviceInfo.androidInfo.then((value) {
+      value.version.sdkInt > 32
+          ? _permissionManageExternalStorage.status.then((value) {
+              if (value != PermissionStatus.granted) {
+                openAppSettings();
+              } else {
+                updatePermissionStatus(value);
+              }
+            })
+          : _permissionStorage.status.then((value) {
+              if (value != PermissionStatus.granted) {
+                openAppSettings();
+              } else {
+                updatePermissionStatus(value);
+              }
+            });
     });
   }
 }
