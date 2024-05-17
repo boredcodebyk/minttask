@@ -7,17 +7,19 @@ class PermissionView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text("Request Permission"),
-        FilledButton(
-          onPressed: () =>
-              ref.read(permissionProvider.notifier).requestPermission(),
-          child: const Text("Request Permission"),
-        ),
-      ],
+    return Scaffold(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text("Request Permission"),
+          FilledButton(
+            onPressed: () =>
+                ref.read(permissionProvider.notifier).requestPermission(),
+            child: const Text("Request Permission"),
+          ),
+        ],
+      ),
     );
   }
 }
