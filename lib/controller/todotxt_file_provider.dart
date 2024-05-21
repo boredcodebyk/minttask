@@ -1,11 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:minttask/controller/error_provider.dart';
 import 'package:minttask/controller/filehandle.dart';
-import 'package:minttask/controller/router_provider.dart';
 import 'package:minttask/controller/shared_preference_provider.dart';
-import 'package:minttask/controller/todotxt_parser.dart';
 import 'package:minttask/model/task_model.dart';
 
 final todotxtFilePathProvider = StateProvider((ref) {
