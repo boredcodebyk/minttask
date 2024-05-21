@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:minttask/controller/todotxt_file_provider.dart';
@@ -49,7 +50,7 @@ class _NewTodoViewState extends ConsumerState<NewTodoView> {
               TextButton(
                   onPressed: () {
                     saveTask();
-                    Navigator.of(context).pop(false);
+                    Navigator.of(context).pop(true);
                   },
                   child: const Text("Save and Exit")),
             ],
@@ -62,55 +63,76 @@ class _NewTodoViewState extends ConsumerState<NewTodoView> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: (task.line() == ref.watch(todoItemProvider).line()),
+      canPop: true,
       onPopInvoked: (didPop) async {
         if (didPop) return;
-        final bool closeEditor = await closeAlertDialog() ?? false;
+        if (task.line() != ref.watch(todoItemProvider).line()) {
+          final bool closeEditor = await closeAlertDialog() ?? false;
 
-        if (context.mounted && closeEditor) {
-          context.pop();
-          ref.read(todoItemProvider.notifier).clear();
+          if (context.mounted && closeEditor) {
+            context.pop();
+            ref.read(todoItemProvider.notifier).clear();
+          }
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          leading: PopScope(
-            canPop: task.line() == ref.watch(todoItemProvider).line(),
-            onPopInvoked: (didPop) async {
-              if (didPop) return;
-              if (task.line() != ref.watch(todoItemProvider).line()) {
-                final bool closeEditor = await closeAlertDialog() ?? false;
-
-                if (context.mounted && closeEditor) {
-                  context.pop();
-                  ref.read(todoItemProvider.notifier).clear();
-                }
-              }
-            },
-            child: IconButton(
-                onPressed: () async {
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyS, control: true): () {
+            if (task.line() != ref.watch(todoItemProvider).line()) {
+              saveTask();
+              ref.read(todoItemProvider.notifier).clear();
+              context.pop();
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text("Saved"),
+                behavior: SnackBarBehavior.floating,
+              ));
+            }
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            leading: PopScope(
+              canPop: true,
+              onPopInvoked: (didPop) async {
+                if (didPop) return;
+                if (task.line() != ref.watch(todoItemProvider).line()) {
                   final bool closeEditor = await closeAlertDialog() ?? false;
 
                   if (context.mounted && closeEditor) {
                     context.pop();
                     ref.read(todoItemProvider.notifier).clear();
                   }
-                },
-                icon: const Icon(Icons.arrow_back)),
+                }
+              },
+              child: IconButton(
+                  onPressed: () async {
+                    if (task.line() != ref.watch(todoItemProvider).line()) {
+                      final bool closeEditor =
+                          await closeAlertDialog() ?? false;
+
+                      if (context.mounted && closeEditor) {
+                        context.pop();
+                        ref.read(todoItemProvider.notifier).clear();
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.arrow_back)),
+            ),
           ),
+          body: const TodoVisualEditor(),
+          floatingActionButton:
+              task.line() == ref.watch(todoItemProvider).line()
+                  ? null
+                  : FloatingActionButton.extended(
+                      onPressed: () {
+                        saveTask();
+                        ref.read(todoItemProvider.notifier).clear();
+                        context.pop();
+                      },
+                      label: const Text('Save'),
+                      icon: const Icon(Icons.done),
+                    ),
         ),
-        body: const TodoVisualEditor(),
-        floatingActionButton: task.line() == ref.watch(todoItemProvider).line()
-            ? null
-            : FloatingActionButton.extended(
-                onPressed: () {
-                  saveTask();
-                  ref.read(todoItemProvider.notifier).clear();
-                  Navigator.of(context).pop(false);
-                },
-                label: const Text('Save'),
-                icon: const Icon(Icons.done),
-              ),
       ),
     );
   }

@@ -15,6 +15,16 @@ class TodoView extends ConsumerStatefulWidget {
 }
 
 class _TodoViewState extends ConsumerState<TodoView> {
+  var task = TaskText(
+    completion: false,
+    priority: null,
+    completionDate: null,
+    creationDate: DateTime.now(),
+    text: '',
+    projectTag: [],
+    contextTag: [],
+    metadata: {},
+  );
   void saveTask() {
     var updateTask = ref.watch(todoItemProvider);
     ref
@@ -41,8 +51,8 @@ class _TodoViewState extends ConsumerState<TodoView> {
                   child: const Text("Continue")),
               TextButton(
                   onPressed: () {
+                    Navigator.of(context).pop(true);
                     saveTask();
-                    Navigator.of(context).pop(false);
                   },
                   child: const Text("Save and Exit")),
             ],
@@ -53,14 +63,27 @@ class _TodoViewState extends ConsumerState<TodoView> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    setState(() {
+      task = ref.read(todoItemProvider);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) async {
         if (didPop) return;
-        final bool closeEditor = await closeAlertDialog() ?? false;
+        if (task.line() != ref.watch(todoItemProvider).line()) {
+          final bool closeEditor = await closeAlertDialog() ?? false;
 
-        if (context.mounted && closeEditor) {
+          if (context.mounted && closeEditor) {
+            context.pop();
+            ref.read(todoItemProvider.notifier).clear();
+          }
+        } else {
           context.pop();
           ref.read(todoItemProvider.notifier).clear();
         }
@@ -71,18 +94,28 @@ class _TodoViewState extends ConsumerState<TodoView> {
             canPop: false,
             onPopInvoked: (didPop) async {
               if (didPop) return;
-              final bool closeEditor = await closeAlertDialog() ?? false;
+              if (task.line() != ref.watch(todoItemProvider).line()) {
+                final bool closeEditor = await closeAlertDialog() ?? false;
 
-              if (context.mounted && closeEditor) {
+                if (context.mounted && closeEditor) {
+                  context.pop();
+                  ref.read(todoItemProvider.notifier).clear();
+                }
+              } else {
                 context.pop();
                 ref.read(todoItemProvider.notifier).clear();
               }
             },
             child: IconButton(
                 onPressed: () async {
-                  final bool closeEditor = await closeAlertDialog() ?? false;
+                  if (task.line() != ref.watch(todoItemProvider).line()) {
+                    final bool closeEditor = await closeAlertDialog() ?? false;
 
-                  if (context.mounted && closeEditor) {
+                    if (context.mounted && closeEditor) {
+                      context.pop();
+                      ref.read(todoItemProvider.notifier).clear();
+                    }
+                  } else {
                     context.pop();
                     ref.read(todoItemProvider.notifier).clear();
                   }
@@ -94,7 +127,8 @@ class _TodoViewState extends ConsumerState<TodoView> {
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
             saveTask();
-            Navigator.of(context).pop(false);
+            ref.read(todoItemProvider.notifier).clear();
+            context.pop();
           },
           label: const Text('Save'),
           icon: const Icon(Icons.done),
