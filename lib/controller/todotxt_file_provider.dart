@@ -12,31 +12,7 @@ final todotxtFilePathProvider = StateProvider((ref) {
   return filePath;
 });
 
-// final todoProvider = StateProvider<List<TaskText>>((ref) {
-//   List<TaskText> todoContent = [];
-//   if (ref.watch(todotxtFilePathProvider).isNotEmpty) {
-//     try {
-//       String todotxt = ref.watch(rawFileProvider);
-//       return todotxt.trim().isNotEmpty
-//           ? todotxt
-//               .trim()
-//               .split('\n')
-//               .map(
-//                 (e) => TaskParser().parser(e),
-//               )
-//               .toList()
-//           : todoContent;
-//     } catch (e) {
-//       ref.read(errorProvider.notifier).state = e.toString();
-//       ref.read(routerProvider).push('/erroroccured');
-//     }
-//   } else {
-//     return todoContent;
-//   }
-//   return todoContent;
-// });
-
-class TodoNotifier extends Notifier<List<TaskText>> {
+class TodoListNotifier extends Notifier<List<TaskText>> {
   @override
   List<TaskText> build() {
     return [];
@@ -52,6 +28,11 @@ class TodoNotifier extends Notifier<List<TaskText>> {
     ref.read(rawFileProvider.notifier).saveFile(state);
   }
 
+  void updateTodo(int todoIndex, TaskText task) {
+    state[todoIndex] = task;
+    ref.read(rawFileProvider.notifier).saveFile(state);
+  }
+
   void toggle(int todoIndex, bool value) {
     state[todoIndex] = state[todoIndex].copyWith(
         completion: value, completionDate: value ? DateTime.now() : null);
@@ -62,7 +43,43 @@ class TodoNotifier extends Notifier<List<TaskText>> {
   void updateState(List<TaskText> list) {
     state = list;
   }
+
+  TaskText valueAt(int todoIndex) => state[todoIndex];
 }
 
-final todoListProvider =
-    NotifierProvider<TodoNotifier, List<TaskText>>(() => TodoNotifier());
+final todoListProvider = NotifierProvider<TodoListNotifier, List<TaskText>>(
+    () => TodoListNotifier());
+
+class TodoNotifier extends Notifier<TaskText> {
+  @override
+  TaskText build() {
+    return TaskText(
+      completion: false,
+      priority: null,
+      completionDate: null,
+      creationDate: DateTime.now(),
+      text: '',
+      projectTag: [],
+      contextTag: [],
+      metadata: {},
+    );
+  }
+
+  void updateFromTask(TaskText task) => state = task;
+
+  TaskText taskValue() => state;
+
+  void clear() => state = TaskText(
+        completion: false,
+        priority: null,
+        completionDate: null,
+        creationDate: DateTime.now(),
+        text: '',
+        projectTag: [],
+        contextTag: [],
+        metadata: {},
+      );
+}
+
+final todoItemProvider =
+    NotifierProvider<TodoNotifier, TaskText>(() => TodoNotifier());

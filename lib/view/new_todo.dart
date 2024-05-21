@@ -3,23 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:minttask/controller/todotxt_file_provider.dart';
 import 'package:minttask/model/task_model.dart';
+import 'package:minttask/view/components/todo_visual_editor.dart';
 
-import 'components/todo_visual_editor.dart';
-
-class TodoView extends ConsumerStatefulWidget {
-  const TodoView({super.key, required this.todoIndex});
-  final int todoIndex;
+class NewTodoView extends ConsumerStatefulWidget {
+  const NewTodoView({super.key});
 
   @override
-  ConsumerState<TodoView> createState() => _TodoViewState();
+  ConsumerState<NewTodoView> createState() => _NewTodoViewState();
 }
 
-class _TodoViewState extends ConsumerState<TodoView> {
+class _NewTodoViewState extends ConsumerState<NewTodoView> {
+  var task = TaskText(
+    completion: false,
+    priority: null,
+    completionDate: null,
+    creationDate: DateTime.now(),
+    text: '',
+    projectTag: [],
+    contextTag: [],
+    metadata: {},
+  );
+
   void saveTask() {
-    var updateTask = ref.watch(todoItemProvider);
-    ref
-        .read(todoListProvider.notifier)
-        .updateTodo(widget.todoIndex, updateTask);
+    var newtask = ref.watch(todoItemProvider);
+    ref.read(todoListProvider.notifier).addTodo(newtask);
   }
 
   Future<bool?> closeAlertDialog() async {
@@ -28,7 +35,7 @@ class _TodoViewState extends ConsumerState<TodoView> {
       builder: (context) => AlertDialog(
         title: const Text("Are you sure?"),
         content: const Text(
-            "You may have unsaved work. Save it or you will lose the changes made."),
+            "You have unsaved work. Save it or you will lose the changes made."),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(true),
@@ -55,7 +62,7 @@ class _TodoViewState extends ConsumerState<TodoView> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: (task.line() == ref.watch(todoItemProvider).line()),
       onPopInvoked: (didPop) async {
         if (didPop) return;
         final bool closeEditor = await closeAlertDialog() ?? false;
@@ -68,14 +75,16 @@ class _TodoViewState extends ConsumerState<TodoView> {
       child: Scaffold(
         appBar: AppBar(
           leading: PopScope(
-            canPop: false,
+            canPop: task.line() == ref.watch(todoItemProvider).line(),
             onPopInvoked: (didPop) async {
               if (didPop) return;
-              final bool closeEditor = await closeAlertDialog() ?? false;
+              if (task.line() != ref.watch(todoItemProvider).line()) {
+                final bool closeEditor = await closeAlertDialog() ?? false;
 
-              if (context.mounted && closeEditor) {
-                context.pop();
-                ref.read(todoItemProvider.notifier).clear();
+                if (context.mounted && closeEditor) {
+                  context.pop();
+                  ref.read(todoItemProvider.notifier).clear();
+                }
               }
             },
             child: IconButton(
@@ -91,14 +100,17 @@ class _TodoViewState extends ConsumerState<TodoView> {
           ),
         ),
         body: const TodoVisualEditor(),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            saveTask();
-            Navigator.of(context).pop(false);
-          },
-          label: const Text('Save'),
-          icon: const Icon(Icons.done),
-        ),
+        floatingActionButton: task.line() == ref.watch(todoItemProvider).line()
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () {
+                  saveTask();
+                  ref.read(todoItemProvider.notifier).clear();
+                  Navigator.of(context).pop(false);
+                },
+                label: const Text('Save'),
+                icon: const Icon(Icons.done),
+              ),
       ),
     );
   }

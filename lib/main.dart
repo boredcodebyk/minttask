@@ -66,6 +66,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     final customDarkColorScheme = ColorScheme.fromSeed(
         seedColor: Color(ref.watch(selectedCustomColor)),
         brightness: Brightness.dark);
+
+    ref.read(rawFileProvider.notifier).updateState();
     return DynamicColorBuilder(builder: (lightColorScheme, darkColorScheme) {
       return MaterialApp.router(
         title: 'Mint Task',

@@ -96,7 +96,10 @@ class _TodoListItemState extends ConsumerState<TodoListItem> {
                 )),
           ],
         ),
-        onTap: () => context.push('/todo/${widget.todoIndex}'),
+        onTap: () {
+          ref.read(todoItemProvider.notifier).updateFromTask(widget.listItem);
+          context.push('/todo/${widget.todoIndex}');
+        },
       ),
     );
   }

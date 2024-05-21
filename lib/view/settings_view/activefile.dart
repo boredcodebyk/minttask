@@ -13,8 +13,12 @@ class ActivefileView extends ConsumerWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: <Widget>[
-          const SliverAppBar.large(
-            title: Text("Active File"),
+          SliverAppBar.large(
+            title: const Text("Active File"),
+            leading: IconButton(
+              onPressed: () => context.pop(),
+              icon: const Icon(Icons.arrow_back),
+            ),
           ),
           SliverToBoxAdapter(
             child: Padding(

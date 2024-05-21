@@ -152,7 +152,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
       ),
       floatingActionButton: (ref.watch(todotxtFilePathProvider).isNotEmpty)
           ? FloatingActionButton(
-              onPressed: () {},
+              onPressed: () => context.push('/newtodo'),
               child: const Icon(Icons.add),
             )
           : null,

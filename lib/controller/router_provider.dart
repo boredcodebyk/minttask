@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:minttask/controller/permission_provider.dart';
 import 'package:minttask/view/error_view.dart';
+import 'package:minttask/view/new_todo.dart';
 import 'package:minttask/view/settings_view/activefile.dart';
 import 'package:minttask/view/test.dart';
 import 'package:minttask/view/views.dart';
@@ -32,6 +33,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/test',
         builder: (context, state) => const TestView(),
+      ),
+      GoRoute(
+        path: '/newtodo',
+        builder: (context, state) => const NewTodoView(),
       ),
       GoRoute(
           path: '/settingsview',
