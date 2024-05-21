@@ -64,28 +64,28 @@ class TaskParser {
     );
     return value;
   }
+}
 
-  // Credit to https://stackoverflow.com/questions/68565990/dart-how-to-convert-a-column-letter-into-number
-  int lettersToIndex(String letters) {
-    var result = 0;
-    for (var i = 0; i < letters.length; i++) {
-      result = result * 26 + (letters.codeUnitAt(i) & 0x1f);
-    }
-    return result;
+// Credit to https://stackoverflow.com/questions/68565990/dart-how-to-convert-a-column-letter-into-number
+int lettersToIndex(String letters) {
+  var result = 0;
+  for (var i = 0; i < letters.length; i++) {
+    result = result * 26 + (letters.codeUnitAt(i) & 0x1f);
   }
+  return result;
+}
 
-  String indexToLetters(int index) {
-    if (index <= 0) {
-      //throw RangeError.range(index, 1, null, "index");
-    }
-    const letters0 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    if (index < 27) return letters0[index - 1];
-    var letters = <String>[];
-    do {
-      index -= 1;
-      letters.add(letters0[index.remainder(26)]);
-      index ~/= 26;
-    } while (index > 0);
-    return letters.reversed.join("");
+String indexToLetters(int index) {
+  if (index <= 0) {
+    //throw RangeError.range(index, 1, null, "index");
   }
+  const letters0 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  if (index < 27) return letters0[index - 1];
+  var letters = <String>[];
+  do {
+    index -= 1;
+    letters.add(letters0[index.remainder(26)]);
+    index ~/= 26;
+  } while (index > 0);
+  return letters.reversed.join("");
 }

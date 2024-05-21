@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:minttask/controller/filehandle.dart';
 import 'package:minttask/controller/permission_provider.dart';
 import 'package:minttask/controller/router_provider.dart';
 import 'package:minttask/controller/settings_provider.dart';
 import 'package:minttask/controller/shared_preference_provider.dart';
+import 'package:minttask/controller/todotxt_file_provider.dart';
 import 'package:minttask/model/default_color_scheme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -47,6 +49,9 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       if (Platform.isAndroid) {
         ref.read(permissionProvider.notifier).fetchPermissionStatus();
+      }
+      if (ref.watch(todotxtFilePathProvider).isNotEmpty) {
+        ref.read(rawFileProvider.notifier).updateState();
       }
     }
   }

@@ -1,15 +1,17 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:minttask/controller/todotxt_file_provider.dart';
 
-class TestView extends StatefulWidget {
+class TestView extends ConsumerStatefulWidget {
   const TestView({super.key});
 
   @override
-  State<TestView> createState() => _TestViewState();
+  ConsumerState<TestView> createState() => _TestViewState();
 }
 
-class _TestViewState extends State<TestView> {
+class _TestViewState extends ConsumerState<TestView> {
   var details = "";
   var jsondummy = {
     "name": "abc",
@@ -68,8 +70,10 @@ class _TestViewState extends State<TestView> {
         children: [
           Text(details),
           FilledButton(
-            onPressed: openDir,
-            child: Text("OpenDir"),
+            onPressed: () {
+              ref.read(todotxtFilePathProvider.notifier).state = "";
+            },
+            child: Text("Close"),
           ),
           FilledButton(
             onPressed: () => print(jsondummy),

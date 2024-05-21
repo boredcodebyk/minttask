@@ -4,6 +4,8 @@ import 'package:animations/animations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:minttask/controller/permission_provider.dart';
+import 'package:minttask/view/error_view.dart';
+import 'package:minttask/view/settings_view/activefile.dart';
 import 'package:minttask/view/test.dart';
 import 'package:minttask/view/views.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -32,33 +34,51 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const TestView(),
       ),
       GoRoute(
-        path: '/settingsview',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const SettingsView(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-              SharedAxisTransition(
-            animation: animation,
-            secondaryAnimation: secondaryAnimation,
-            transitionType: SharedAxisTransitionType.horizontal,
-            child: child,
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/settingsview/theme',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const ThemeView(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-              SharedAxisTransition(
-            animation: animation,
-            secondaryAnimation: secondaryAnimation,
-            transitionType: SharedAxisTransitionType.horizontal,
-            child: child,
-          ),
-        ),
-      ),
+          path: '/settingsview',
+          pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const SettingsView(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) =>
+                        SharedAxisTransition(
+                  animation: animation,
+                  secondaryAnimation: secondaryAnimation,
+                  transitionType: SharedAxisTransitionType.horizontal,
+                  child: child,
+                ),
+              ),
+          routes: [
+            GoRoute(
+              path: 'theme',
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const ThemeView(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) =>
+                        SharedAxisTransition(
+                  animation: animation,
+                  secondaryAnimation: secondaryAnimation,
+                  transitionType: SharedAxisTransitionType.horizontal,
+                  child: child,
+                ),
+              ),
+            ),
+            GoRoute(
+              path: 'activefile',
+              pageBuilder: (context, state) => CustomTransitionPage(
+                key: state.pageKey,
+                child: const ActivefileView(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) =>
+                        SharedAxisTransition(
+                  animation: animation,
+                  secondaryAnimation: secondaryAnimation,
+                  transitionType: SharedAxisTransitionType.horizontal,
+                  child: child,
+                ),
+              ),
+            ),
+          ]),
       GoRoute(
         path: '/todo/:id',
         pageBuilder: (context, state) {
@@ -116,6 +136,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/permissionrequest',
         builder: (context, state) => const PermissionView(),
       ),
+      GoRoute(
+        path: '/erroroccured',
+        builder: (context, state) => const ErrorView(),
+      )
     ],
   );
   return router;

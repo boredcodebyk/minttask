@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:minttask/controller/todotxt_parser.dart';
+import 'package:minttask/model/task_model.dart';
 import 'package:minttask/view/components/todo_list_item.dart';
 
 class TodoListview extends StatelessWidget {
   const TodoListview({super.key, required this.listItem});
 
-  final List<String> listItem;
+  final List<TaskText> listItem;
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +23,9 @@ class TodoListview extends StatelessWidget {
         itemCount: listItem.length,
         itemBuilder: (context, index) {
           var item = listItem[index];
-          var parsedItem = TaskParser().parser(item);
           return TodoListItem(
             todoIndex: index,
-            listItem: parsedItem,
+            listItem: item,
           );
         },
       ),

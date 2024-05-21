@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:minttask/controller/todotxt_parser.dart';
-import 'package:minttask/model/dummy.dart';
+import 'package:minttask/controller/todotxt_file_provider.dart';
 import 'package:minttask/model/task_model.dart';
 
-class TodoListItem extends StatelessWidget {
+class TodoListItem extends ConsumerStatefulWidget {
   const TodoListItem({
     super.key,
     required this.todoIndex,
@@ -13,9 +13,16 @@ class TodoListItem extends StatelessWidget {
   });
   final int todoIndex;
   final TaskText listItem;
+
+  @override
+  ConsumerState<TodoListItem> createState() => _TodoListItemState();
+}
+
+class _TodoListItemState extends ConsumerState<TodoListItem> {
   final pri = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   @override
   Widget build(BuildContext context) {
+    final todoItem = ref.watch(todoListProvider)[widget.todoIndex];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),
       child: ListTile(
@@ -23,15 +30,20 @@ class TodoListItem extends StatelessWidget {
             ? Theme.of(context).colorScheme.surfaceContainerHigh
             : Theme.of(context).colorScheme.surfaceContainerLowest,
         leading: Checkbox(
-          value: TaskParser().parser(textList[todoIndex]).completion,
-          onChanged: (value) {},
+          value: todoItem.completion,
+          onChanged: (value) {
+            ref
+                .read(todoListProvider.notifier)
+                .toggle(widget.todoIndex, value!);
+          },
         ),
-        title: Text(listItem.text),
+        title: Text(widget.listItem.text),
         subtitle: Wrap(
           direction: Axis.horizontal,
           spacing: 8,
           children: [
-            if (!(listItem.priority == 0 || listItem.priority == null)) ...[
+            if (!(widget.listItem.priority == 0 ||
+                widget.listItem.priority == null)) ...[
               Chip(
                 color: WidgetStatePropertyAll(
                     Theme.of(context).colorScheme.surfaceContainerHighest),
@@ -40,13 +52,14 @@ class TodoListItem extends StatelessWidget {
                   Icons.priority_high,
                   size: 12,
                 ),
-                label: (listItem.priority == null || listItem.priority == 0)
+                label: (widget.listItem.priority == null ||
+                        widget.listItem.priority == 0)
                     ? const Text("")
-                    : Text(pri.split("")[listItem.priority! - 1]),
+                    : Text(pri.split("")[widget.listItem.priority! - 1]),
                 labelStyle: Theme.of(context).textTheme.labelSmall,
               ),
             ],
-            if (listItem.completion)
+            if (widget.listItem.completion)
               Chip(
                 color: WidgetStatePropertyAll(
                     Theme.of(context).colorScheme.surfaceContainerHighest),
@@ -56,10 +69,10 @@ class TodoListItem extends StatelessWidget {
                   size: 16,
                 ),
                 label: Text(DateFormat.yMMMMd('en_US')
-                    .format(listItem.completionDate!)),
+                    .format(widget.listItem.completionDate!)),
                 labelStyle: Theme.of(context).textTheme.labelSmall,
               ),
-            ...listItem.contextTag!.map((e) => Chip(
+            ...widget.listItem.contextTag!.map((e) => Chip(
                   color: WidgetStatePropertyAll(
                       Theme.of(context).colorScheme.surfaceContainerHighest),
                   side: BorderSide.none,
@@ -70,7 +83,7 @@ class TodoListItem extends StatelessWidget {
                   label: Text(e),
                   labelStyle: Theme.of(context).textTheme.labelSmall,
                 )),
-            ...listItem.projectTag!.map((e) => Chip(
+            ...widget.listItem.projectTag!.map((e) => Chip(
                   color: WidgetStatePropertyAll(
                       Theme.of(context).colorScheme.surfaceContainerHighest),
                   side: BorderSide.none,
@@ -83,7 +96,7 @@ class TodoListItem extends StatelessWidget {
                 )),
           ],
         ),
-        onTap: () => context.push('/todo/$todoIndex'),
+        onTap: () => context.push('/todo/${widget.todoIndex}'),
       ),
     );
   }
