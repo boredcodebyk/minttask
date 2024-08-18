@@ -7,6 +7,7 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._();
   static Database? _database;
   static const tableName = "basic_1";
+  static const customList = "customList";
   DatabaseHelper._();
 
   Future<Database> get database async {
@@ -22,9 +23,26 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
-        await db.execute('''
+        var batch = db.batch();
+        taskTableV2(batch);
+        customListV2(batch);
+        await batch.commit();
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        var batch = db.batch();
+        if (oldVersion < 2) {
+          customListV2(batch);
+          upgadeTaskTableV2(batch);
+        }
+        await batch.commit();
+      },
+    );
+  }
+
+  void taskTableV2(Batch batch) {
+    batch.execute('''
           CREATE TABLE $tableName(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
@@ -33,14 +51,44 @@ class DatabaseHelper {
             date_created INTEGER,
             date_modified INTEGER,
             has_alarm INTEGER,
-            alarm_time TEXT
+            alarm_time TEXT,
+            custom_list TEXT
           )
         ''');
-      },
-    );
   }
 
-  Future<List<Map<String, dynamic>>> getTodos(colname, filter) async {
+  void customListV2(Batch batch) {
+    batch.execute('''
+            CREATE TABLE $customList(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT
+            )
+          ''');
+  }
+
+  void upgadeTaskTableV2(Batch batch) {
+    batch.execute('ALTER TABLE $tableName ADD custom_list TEXT');
+  }
+
+  Future<List<Map<String, dynamic>>> getCustomList() async {
+    final db = await instance.database;
+    return db.query(customList);
+  }
+
+  Future<int> addCustomList(String name) async {
+    final db = await instance.database;
+    return await db.insert(customList, {"name": name});
+  }
+
+  Future<String?> getCustomListName(int id) async {
+    final db = await instance.database;
+    final result = await db.query(customList,
+        where: 'id = ?', whereArgs: [id], limit: 1, columns: ['name']);
+    return result.first.entries.first.value.toString();
+  }
+
+  Future<List<Map<String, dynamic>>> getTodos(
+      String colname, String filter) async {
     final db = await instance.database;
     //final List<Map<String, dynamic>>
     return await db.query(tableName,

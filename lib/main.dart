@@ -1,30 +1,32 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:minttask/controller/route.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import './pages/pages.dart';
-import './pages/first_launch.dart';
-import 'models/settings_model.dart';
+import 'controller/pref.dart';
+import 'controller/settings_model.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final settingsmodel = SettingsModel();
-  final tdl = TodoListModel();
-  settingsmodel.load();
-  tdl.load();
-  runApp(MultiProvider(providers: [
-    ChangeNotifierProvider.value(value: settingsmodel),
-    ChangeNotifierProvider.value(value: tdl),
-  ], child: const MyApp()));
+
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    SettingsModel settings = Provider.of<SettingsModel>(context);
+  Widget build(BuildContext context, WidgetRef ref) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -40,37 +42,36 @@ class MyApp extends StatelessWidget {
         seedColor: const Color.fromARGB(255, 217, 229, 129),
         brightness: Brightness.dark);
     final customLightColorScheme =
-        ColorScheme.fromSeed(seedColor: Color(settings.customColor));
+        ColorScheme.fromSeed(seedColor: Color(ref.watch(selectedCustomColor)));
 
     final customDarkColorScheme = ColorScheme.fromSeed(
-        seedColor: Color(settings.customColor), brightness: Brightness.dark);
+        seedColor: Color(ref.watch(selectedCustomColor)),
+        brightness: Brightness.dark);
 
     return DynamicColorBuilder(
       builder: (lightColorScheme, darkColorScheme) {
-        return MaterialApp(
+        return MaterialApp.router(
           title: 'Mint Task',
+          routerConfig: ref.watch(routerProvider),
           theme: ThemeData(
-            colorScheme: settings.isSystemColor
+            colorScheme: ref.watch(useDynamicColor)
                 ? lightColorScheme
-                : settings.useCustomColor
+                : ref.watch(useCustomColor)
                     ? customLightColorScheme
                     : defaultLightColorScheme,
             fontFamily: 'Manrope',
             useMaterial3: true,
           ),
           darkTheme: ThemeData(
-            colorScheme: settings.isSystemColor
+            colorScheme: ref.watch(useDynamicColor)
                 ? darkColorScheme
-                : settings.useCustomColor
+                : ref.watch(useCustomColor)
                     ? customDarkColorScheme
                     : defaultDarkColorScheme,
             fontFamily: 'Manrope',
             useMaterial3: true,
           ),
-          themeMode: settings.themeMode,
-          home: settings.firstLaunch
-              ? const FirstTimeLaunch()
-              : const MyHomePage(),
+          themeMode: ref.watch(themeModeProvider),
         );
       },
     );
