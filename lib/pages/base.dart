@@ -125,6 +125,7 @@ class _BaseViewState extends ConsumerState<BaseView> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   TextField(
+                                    autofocus: true,
                                     controller: textEditingController,
                                     decoration: const InputDecoration.collapsed(
                                         hintText: "Name"),
@@ -140,11 +141,13 @@ class _BaseViewState extends ConsumerState<BaseView> {
                                 ),
                                 TextButton(
                                   onPressed: () async {
-                                    final dbHelper = DatabaseHelper.instance;
-                                    await dbHelper.addCustomList(
-                                        textEditingController.text.trim());
-                                    if (!mounted) return;
-                                    Navigator.of(context).pop();
+                                    if (textEditingController.text.isNotEmpty) {
+                                      final dbHelper = DatabaseHelper.instance;
+                                      await dbHelper.addCustomList(
+                                          textEditingController.text.trim());
+                                      if (!mounted) return;
+                                      Navigator.of(context).pop();
+                                    }
                                   },
                                   child: const Text("Add"),
                                 )

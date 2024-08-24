@@ -7,7 +7,11 @@ class SettingsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: CustomScrollView(
-        slivers: <Widget>[SliverAppBar.large()],
+        slivers: <Widget>[
+          SliverAppBar.large(
+            title: Text("Settings"),
+          )
+        ],
       ),
     );
   }

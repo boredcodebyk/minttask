@@ -30,6 +30,7 @@ class Task {
   String? description;
   bool? isDone;
   List<int>? customList;
+  bool? trash;
 
   Task({
     this.id,
@@ -39,6 +40,7 @@ class Task {
     this.description,
     this.isDone,
     this.customList,
+    this.trash,
   });
 
   Task copyWith({
@@ -49,6 +51,7 @@ class Task {
     String? description,
     bool? isDone,
     List<int>? customList,
+    bool? trash,
   }) =>
       Task(
         id: id ?? this.id,
@@ -58,6 +61,7 @@ class Task {
         description: description ?? this.description,
         isDone: isDone ?? this.isDone,
         customList: customList ?? this.customList,
+        trash: trash ?? this.trash,
       );
 
   factory Task.fromRawJson(String str) => Task.fromJson(json.decode(str));
@@ -75,6 +79,7 @@ class Task {
         customList: json["custom_list"].length > 0
             ? jsonDecode(json["custom_list"])
             : <int>[],
+        trash: json["trash"] == 0 ? false : true,
       );
 
   Map<String, dynamic> toJson() => {
@@ -85,5 +90,6 @@ class Task {
         "description": description,
         "is_done": isDone! ? 1 : 0,
         "custom_list": jsonEncode(customList),
+        "trash": trash! ? 1 : 0
       };
 }

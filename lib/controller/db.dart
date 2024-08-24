@@ -17,67 +17,71 @@ class DatabaseHelper {
     return _database!;
   }
 
+  final initScript = [
+    '''
+      CREATE TABLE $tableName(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        description TEXT,
+        is_done INTEGER,
+        date_created INTEGER,
+        date_modified INTEGER,
+        has_alarm INTEGER,
+        alarm_time TEXT,
+        custom_list TEXT,
+        trash INTEGER
+      )
+    ''',
+    '''
+      CREATE TABLE IF NOT EXISTS $customList(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        trash INTEGER
+      )
+    '''
+  ];
+
+  final migrationScript = [
+    'ALTER TABLE $tableName ADD IF NOT EXISTS custom_list TEXT, trash INTEGER',
+    '''
+      CREATE TABLE IF NOT EXISTS $customList(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        trash INTEGER
+      )
+    '''
+  ];
+
   Future<Database> _initDB() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'todo.db');
 
     return await openDatabase(
       path,
-      version: 2,
+      version: migrationScript.length,
       onCreate: (db, version) async {
-        var batch = db.batch();
-        taskTableV2(batch);
-        customListV2(batch);
-        await batch.commit();
+        for (var script in initScript) {
+          await db.execute(script);
+        }
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         var batch = db.batch();
-        if (oldVersion < 2) {
-          customListV2(batch);
-          upgadeTaskTableV2(batch);
+        for (var i = oldVersion - 1; i <= newVersion - 1; i++) {
+          batch.execute(migrationScript[i]);
         }
         await batch.commit();
       },
     );
   }
 
-  void taskTableV2(Batch batch) {
-    batch.execute('''
-          CREATE TABLE $tableName(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            description TEXT,
-            is_done INTEGER,
-            date_created INTEGER,
-            date_modified INTEGER,
-            has_alarm INTEGER,
-            alarm_time TEXT,
-            custom_list TEXT
-          )
-        ''');
-  }
-
-  void customListV2(Batch batch) {
-    batch.execute('''
-            CREATE TABLE $customList(
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT
-            )
-          ''');
-  }
-
-  void upgadeTaskTableV2(Batch batch) {
-    batch.execute('ALTER TABLE $tableName ADD custom_list TEXT');
-  }
-
   Future<List<Map<String, dynamic>>> getCustomList() async {
     final db = await instance.database;
-    return db.query(customList);
+    return db.query(customList, where: 'trash = 0');
   }
 
   Future<int> addCustomList(String name) async {
     final db = await instance.database;
-    return await db.insert(customList, {"name": name});
+    return await db.insert(customList, {"name": name, 'trash': 0});
   }
 
   Future<String?> getCustomListName(int id) async {
@@ -87,12 +91,25 @@ class DatabaseHelper {
     return result.first.entries.first.value.toString();
   }
 
+  Future<int> updateCustomListName(int id, String name) async {
+    final db = await instance.database;
+    return await db.update(customList, {'name': name},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> moveaToTrashCustomList(int id) async {
+    final db = await instance.database;
+    return await db.update(customList, {'trash': 1},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<List<Map<String, dynamic>>> getTodos(
       String colname, String filter) async {
     final db = await instance.database;
     //final List<Map<String, dynamic>>
     return await db.query(tableName,
-        orderBy: "$colname ${filter.toString().toUpperCase()}");
+        orderBy: "$colname ${filter.toString().toUpperCase()}",
+        where: 'trash = 0');
   }
 
   Future<List<Map<String, dynamic>>> orderBy() async {

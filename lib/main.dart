@@ -1,3 +1,4 @@
+import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -53,6 +54,7 @@ class MyApp extends ConsumerWidget {
         return MaterialApp.router(
           title: 'Mint Task',
           routerConfig: ref.watch(routerProvider),
+          localizationsDelegates: const [AppFlowyEditorLocalizations.delegate],
           theme: ThemeData(
             colorScheme: ref.watch(useDynamicColor)
                 ? lightColorScheme

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:minttask/controller/todosettings.dart';
+import 'package:go_router/go_router.dart';
 
 import '../controller/db.dart';
 import '../controller/tasklist.dart';
@@ -58,7 +58,79 @@ class _SubListViewState extends ConsumerState<SubListView> {
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
               IconButton(
-                  onPressed: () {}, icon: const Icon(Icons.edit_outlined))
+                  onPressed: () => showDialog(
+                        context: context,
+                        builder: (context) {
+                          TextEditingController textEditingController =
+                              TextEditingController.fromValue(
+                                  TextEditingValue(text: customListName));
+                          return AlertDialog(
+                            title: const Text("Edit"),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextField(
+                                  controller: textEditingController,
+                                  decoration: const InputDecoration.collapsed(
+                                      hintText: "Name"),
+                                )
+                              ],
+                            ),
+                            actionsAlignment: MainAxisAlignment.spaceBetween,
+                            actionsOverflowAlignment:
+                                OverflowBarAlignment.start,
+                            actions: [
+                              TextButton(
+                                onPressed: () async {
+                                  final dbHelper = DatabaseHelper.instance;
+                                  await dbHelper
+                                      .moveaToTrashCustomList(widget.taskID);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context)
+                                        .clearSnackBars();
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
+                                      content: Text("Moved to Trash"),
+                                      behavior: SnackBarBehavior.floating,
+                                    ));
+                                    Navigator.of(context).pop();
+                                    context.go('/');
+                                  }
+                                },
+                                child: const Text("Trash"),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text("Close"),
+                                  ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      if (textEditingController
+                                          .text.isNotEmpty) {
+                                        final dbHelper =
+                                            DatabaseHelper.instance;
+                                        await dbHelper.updateCustomListName(
+                                            widget.taskID,
+                                            textEditingController.text.trim());
+                                        getCustomListName();
+                                        if (!mounted) return;
+                                        Navigator.of(context).pop();
+                                      }
+                                    },
+                                    child: const Text("Update"),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                  icon: const Icon(Icons.edit_outlined))
             ],
           ),
         ),
@@ -131,7 +203,7 @@ class _CustomListEditorState extends State<CustomListEditor> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text("Edit"),
+      title: const Text("Edit"),
       content: TextField(
         controller: editorController,
         decoration: const InputDecoration.collapsed(hintText: "Name"),
