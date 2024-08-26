@@ -2,7 +2,8 @@
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/boredcodebyk/minttask?color=%23fffcf3&logoColor=%231c1c17&style=for-the-badge)
 
-## Hello new and old folks visiting this repository. I would like to inform you that I'm completely revamping this app and it will be based on [todo.txt](https://github.com/todotxt/todo.txt). All changes are published into [next-todotxt-based](https://github.com/boredcodebyk/minttask/tree/next-todotxt-based) branch and soon will be ready to release.
+## Update
+Recently, I thought to ditch the idea of a todo.txt file-based to-do list and work with SQLite again to work with Android Widgets and background tasks. But, sadly, I came across major setbacks. One of them is, old task made in v1.0.0 do not show up in the new version of the app when I was testing, even though the database structure remains the same, and so I'm starting to lose motivation again and stuff IRL and focus on my career. I'm happy with how the app turned out, but I can't keep up with the setbacks. I'll archive the repository for now. Thank you.
 
 ---
 
